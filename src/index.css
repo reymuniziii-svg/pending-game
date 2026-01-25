@@ -1,0 +1,221 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+@layer base {
+  :root {
+    --background: 248 249 250;
+    --foreground: 44 62 80;
+    --muted: 236 240 241;
+    --muted-foreground: 127 140 141;
+    --border: 189 195 199;
+    --primary: 44 62 80;
+    --primary-foreground: 255 255 255;
+    --accent: 52 152 219;
+    --accent-foreground: 255 255 255;
+    --success: 39 174 96;
+    --warning: 230 126 34;
+    --danger: 192 57 43;
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans m-0;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  /* Typography defaults */
+  h1, h2, h3, h4 {
+    @apply font-serif font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl;
+  }
+
+  h2 {
+    @apply text-3xl;
+  }
+
+  h3 {
+    @apply text-2xl;
+  }
+
+  h4 {
+    @apply text-xl;
+  }
+
+  /* Form/bureaucratic text */
+  .font-bureaucratic {
+    @apply font-mono text-sm tracking-tight;
+  }
+
+  /* Focus styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-background;
+  }
+}
+
+/* Component styles */
+@layer components {
+  /* Cards with documentary aesthetic */
+  .card {
+    @apply bg-card rounded-md border border-border shadow-card;
+  }
+
+  .card-hover {
+    @apply transition-shadow hover:shadow-card-hover;
+  }
+
+  /* Status badges */
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  /* Form styling - intentionally cold/bureaucratic */
+  .form-box {
+    @apply bg-muted border border-border font-mono text-sm p-4;
+  }
+
+  .form-field {
+    @apply border border-border bg-white px-3 py-2 font-mono text-sm;
+  }
+
+  /* Event narrative text */
+  .narrative {
+    @apply font-serif text-lg leading-relaxed;
+  }
+
+  /* Choice buttons */
+  .choice-btn {
+    @apply w-full text-left px-4 py-3 border border-border rounded-md
+           hover:border-accent hover:bg-accent/5 transition-colors
+           focus-visible:ring-2 focus-visible:ring-accent;
+  }
+
+  .choice-btn-disabled {
+    @apply opacity-50 cursor-not-allowed hover:border-border hover:bg-transparent;
+  }
+
+  /* Year timeline */
+  .timeline-dot {
+    @apply w-3 h-3 rounded-full bg-border;
+  }
+
+  .timeline-dot-active {
+    @apply bg-accent;
+  }
+
+  .timeline-dot-complete {
+    @apply bg-success;
+  }
+
+  /* Trap reveal styling */
+  .trap-reveal {
+    @apply bg-danger/10 border-l-4 border-danger p-4;
+  }
+
+  /* Document styling */
+  .document {
+    @apply bg-white border border-border shadow-sm font-mono text-xs;
+  }
+
+  /* Loading states */
+  .loading-pulse {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  /* Button base styles */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium
+           transition-colors focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-accent focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+
+  .btn-secondary {
+    @apply bg-muted text-foreground hover:bg-muted/80;
+  }
+
+  .btn-outline {
+    @apply border border-border bg-transparent hover:bg-muted;
+  }
+
+  .btn-ghost {
+    @apply hover:bg-muted;
+  }
+
+  .btn-sm {
+    @apply h-9 px-3;
+  }
+
+  .btn-md {
+    @apply h-10 px-4 py-2;
+  }
+
+  .btn-lg {
+    @apply h-11 px-8;
+  }
+}
+
+/* Utility styles */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Safe area padding for mobile */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Animations */
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.animate-typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typewriter 2s steps(40) forwards;
+}
+
+/* Print styles */
+@media print {
+  body {
+    @apply bg-white text-black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

@@ -253,7 +253,11 @@ export interface GameEvent {
   // Flags
   isRepeatable: boolean
   isMandatory: boolean
+  isImportant?: boolean  // V3: Marks events that should trigger foreshadowing
   priority: number  // Higher = processed first
+
+  // V3: Foreshadowing message shown before event triggers
+  foreshadowing?: string
 }
 
 export interface EventTiming {

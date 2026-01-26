@@ -255,6 +255,54 @@ export function useEventEngine() {
     return false
   }, [selectNextEvent, setCurrentEvent])
 
+  // V3: Check for upcoming events and return foreshadowing hint
+  const checkForUpcomingEvents = useCallback((currentDate: GameDate): string | null => {
+    // Check for scheduled events in the next 1-3 months
+    const upcomingMonths = [1, 2, 3]
+    const hints: string[] = []
+
+    for (const monthsAhead of upcomingMonths) {
+      const futureDate = addMonths(currentDate, monthsAhead)
+      const scheduledIds = getScheduledEventsForDate(futureDate)
+
+      for (const eventId of scheduledIds) {
+        const event = EVENTS.find(e => e.id === eventId)
+        if (event?.foreshadowing) {
+          // Return closer hints with higher priority
+          if (monthsAhead === 1) {
+            return event.foreshadowing
+          }
+          hints.push(event.foreshadowing)
+        }
+      }
+    }
+
+    // Check deadline pressure
+    const { activeDeadlines, deadlinePressure } = useTimeStore.getState()
+    if (deadlinePressure >= 80) {
+      return 'A critical deadline approaches...'
+    } else if (deadlinePressure >= 50) {
+      return 'Important dates are drawing near...'
+    }
+
+    // Check if any important events are eligible and likely to trigger soon
+    const eligibleEvents = getEligibleEvents()
+    const importantEligible = eligibleEvents.filter(e =>
+      e.isImportant || e.tags?.includes('milestone') || e.tags?.includes('critical')
+    )
+
+    if (importantEligible.length > 0 && Math.random() > 0.7) {
+      const randomHint = importantEligible[Math.floor(Math.random() * importantEligible.length)]
+      if (randomHint.foreshadowing) {
+        return randomHint.foreshadowing
+      }
+      return 'Something significant may happen soon...'
+    }
+
+    // Return collected hints or null
+    return hints.length > 0 ? hints[0] : null
+  }, [getScheduledEventsForDate, getEligibleEvents])
+
   return {
     evaluateCondition,
     evaluateConditions,
@@ -266,5 +314,7 @@ export function useEventEngine() {
     triggerRandomEvent,
     setCurrentEvent,
     clearCurrentEvent,
+    // V3: Foreshadowing
+    checkForUpcomingEvents,
   }
 }

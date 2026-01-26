@@ -2,12 +2,14 @@ import { useEffect, useCallback, useRef } from 'react'
 import { useTimeStore, useEventStore, useFinanceStore } from '@/stores'
 import { useEventEngine } from './useEventEngine'
 import { getEffectiveMonthDuration } from '@/stores/useTimeStore'
+import type { AdvanceMode } from '@/stores/useTimeStore'
 
 interface UseTimeFlowOptions {
   enabled?: boolean
   onMonthAdvance?: () => void
   onEventTriggered?: (eventId: string) => void
   onQuietPeriodStart?: (months: number) => void
+  onForeshadowing?: (hint: string) => void  // V3: Foreshadowing callback
 }
 
 export function useTimeFlow(options: UseTimeFlowOptions = {}) {
@@ -16,6 +18,7 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     onMonthAdvance,
     onEventTriggered,
     onQuietPeriodStart,
+    onForeshadowing,
   } = options
 
   const timerRef = useRef<number | null>(null)
@@ -35,6 +38,13 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     updateDeadlinePressure,
     getCurrentDate,
     setAutoAdvanceTimer,
+    // V3: Tap-to-advance state
+    advanceMode,
+    transitionState,
+    setUpcomingEventHint,
+    setCanAdvance,
+    startTransition,
+    completeTransition,
   } = useTimeStore()
 
   const {
@@ -46,10 +56,22 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
   } = useEventStore()
 
   const { processMonthEnd } = useFinanceStore()
-  const { selectNextEvent, setCurrentEvent, triggerRandomEvent } = useEventEngine()
+  const { selectNextEvent, setCurrentEvent, triggerRandomEvent, checkForUpcomingEvents } = useEventEngine()
 
-  // Check if we should be running
-  const shouldRun = enabled && flowMode !== 'paused' && !currentEvent && !isProcessingRef.current
+  // Check if we should be running (only for auto mode)
+  const shouldAutoRun = enabled && advanceMode === 'auto' && flowMode !== 'paused' && !currentEvent && !isProcessingRef.current
+
+  // V3: Check for upcoming events and set foreshadowing hints
+  const updateForeshadowing = useCallback(() => {
+    const currentDate = getCurrentDate()
+    const hint = checkForUpcomingEvents?.(currentDate)
+    if (hint) {
+      setUpcomingEventHint(hint)
+      onForeshadowing?.(hint)
+    } else {
+      setUpcomingEventHint(null)
+    }
+  }, [getCurrentDate, checkForUpcomingEvents, setUpcomingEventHint, onForeshadowing])
 
   // Process a single month advance
   const processMonth = useCallback(() => {
@@ -140,7 +162,28 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     onQuietPeriodStart,
   ])
 
-  // Main timer effect
+  // V3: Manual advance function for tap-to-advance mode
+  const manualAdvance = useCallback(() => {
+    if (advanceMode !== 'manual' || currentEvent || isProcessingRef.current) {
+      return false
+    }
+
+    // Handle quiet periods
+    if (isQuietPeriod && quietPeriodMonths > 0) {
+      processQuietPeriod()
+      return true
+    }
+
+    // Process the month
+    const eventTriggered = processMonth()
+
+    // Update foreshadowing for next month after a delay
+    setTimeout(updateForeshadowing, 100)
+
+    return eventTriggered
+  }, [advanceMode, currentEvent, isQuietPeriod, quietPeriodMonths, processQuietPeriod, processMonth, updateForeshadowing])
+
+  // Main timer effect (only for auto mode)
   useEffect(() => {
     // Clear existing timer
     if (timerRef.current) {
@@ -148,7 +191,14 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
       timerRef.current = null
     }
 
-    if (!shouldRun) {
+    // V3: In manual mode, don't auto-advance, but do update foreshadowing
+    if (advanceMode === 'manual') {
+      setAutoAdvanceTimer(null)
+      updateForeshadowing()
+      return
+    }
+
+    if (!shouldAutoRun) {
       setAutoAdvanceTimer(null)
       return
     }
@@ -177,7 +227,8 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
       }
     }
   }, [
-    shouldRun,
+    shouldAutoRun,
+    advanceMode,
     flowSpeed,
     settings,
     deadlinePressure,
@@ -185,6 +236,7 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     processMonth,
     processQuietPeriod,
     setAutoAdvanceTimer,
+    updateForeshadowing,
   ])
 
   // Manual controls
@@ -203,13 +255,32 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     processMonth()
   }, [processMonth])
 
+  // V3: Toggle between auto and manual mode
+  const toggleAdvanceMode = useCallback(() => {
+    const newMode: AdvanceMode = advanceMode === 'auto' ? 'manual' : 'auto'
+    useTimeStore.getState().setAdvanceMode(newMode)
+
+    // Pause when switching to manual
+    if (newMode === 'manual') {
+      useTimeStore.getState().pause()
+    }
+  }, [advanceMode])
+
   return {
+    // V2 compatibility
     isPaused: flowMode === 'paused',
-    isRunning: shouldRun,
+    isRunning: shouldAutoRun,
     flowSpeed,
     deadlinePressure,
     pause,
     resume,
     skipMonth,
+
+    // V3: Tap-to-advance additions
+    advanceMode,
+    isManualMode: advanceMode === 'manual',
+    manualAdvance,
+    toggleAdvanceMode,
+    transitionState,
   }
 }

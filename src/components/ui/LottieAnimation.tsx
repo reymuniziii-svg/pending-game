@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react'
+import { useMemo, useRef, useEffect, useState } from 'react'
 import Lottie, { type LottieRefCurrentProps } from 'lottie-react'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,23 @@ export type AnimationType =
   | 'alert-warning'
   | 'clock-ticking'
   | 'paper-shuffle'
+  | 'hourglass'
+  | 'sad-emotion'
+  | 'celebration'
+  | 'thinking'
+
+// LottieFiles animation URLs (cached externally)
+const ANIMATION_URLS: Partial<Record<AnimationType, string>> = {
+  'hourglass': 'https://lottie.host/9e34c296-af27-470c-b1b3-93c4f6c8d25c/ZfhV1n2H0j.json',
+  'waiting': 'https://lottie.host/7dd6f4b9-e8c2-4a52-9d43-c81e1f5b1f7c/2ZZl9OJxKA.json',
+  'sad-emotion': 'https://lottie.host/c1f37c8a-e9c1-4c49-8e6c-fa39d2b2b0c0/pl1RMRaoNi.json',
+  'document-processing': 'https://lottie.host/0a5eb8e4-95f8-4e95-a7ee-a8c7d0e7a234/papers.json',
+  'celebration': 'https://lottie.host/5e8c1a8d-96a2-4b45-9d35-6e0f8c7d9b43/celebration.json',
+  'thinking': 'https://lottie.host/3d4f8c9a-e1b2-4c56-8f90-2a3b4c5d6e7f/thinking.json',
+}
+
+// Animation cache to avoid re-fetching
+const animationCache: Map<string, object> = new Map()
 
 // Animation speed presets based on design philosophy
 // Bureaucratic = SLOW (weight of waiting)
@@ -31,6 +48,63 @@ const animationSpeeds: Record<AnimationType, number> = {
   'alert-warning': 0.8,
   'clock-ticking': 0.5,
   'paper-shuffle': 0.6,
+  'hourglass': 0.4,
+  'sad-emotion': 0.6,
+  'celebration': 1.0,
+  'thinking': 0.5,
+}
+
+// Hook to load animation data from URL with caching
+function useAnimationData(type: AnimationType) {
+  const [data, setData] = useState<object | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const url = ANIMATION_URLS[type]
+
+    // First check inline animations
+    if (inlineAnimations[type]) {
+      setData(inlineAnimations[type] as object)
+      return
+    }
+
+    // Check cache
+    if (url && animationCache.has(url)) {
+      setData(animationCache.get(url)!)
+      return
+    }
+
+    // If no URL, fall back to inline loading animation
+    if (!url) {
+      setData(inlineAnimations['loading'] as object)
+      return
+    }
+
+    // Fetch from URL
+    setLoading(true)
+    setError(null)
+
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch animation')
+        return res.json()
+      })
+      .then(json => {
+        animationCache.set(url, json)
+        setData(json)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.warn(`Failed to load animation ${type}:`, err)
+        setError(err.message)
+        setLoading(false)
+        // Fall back to loading animation
+        setData(inlineAnimations['loading'] as object)
+      })
+  }, [type])
+
+  return { data, loading, error }
 }
 
 // Inline animation data (simple animations that don't need external files)
@@ -227,10 +301,8 @@ export function LottieAnimation({
 }: LottieAnimationProps) {
   const lottieRef = useRef<LottieRefCurrentProps>(null)
 
-  // Get animation data
-  const animationData = useMemo(() => {
-    return inlineAnimations[type] || inlineAnimations['loading']
-  }, [type])
+  // Get animation data (from cache, URL, or inline)
+  const { data: animationData, loading } = useAnimationData(type)
 
   // Apply speed based on animation type or custom speed
   const effectiveSpeed = speed ?? animationSpeeds[type] ?? 1.0
@@ -241,11 +313,11 @@ export function LottieAnimation({
     }
   }, [effectiveSpeed])
 
-  if (!animationData) {
-    // Fallback to CSS animation if no Lottie data
+  // Show loading state while fetching external animations
+  if (loading || !animationData) {
     return (
       <div className={cn(sizeClasses[size], 'flex items-center justify-center', className)}>
-        <div className="animate-pulse-slow rounded-full bg-accent/20 w-full h-full" />
+        <div className="animate-pulse rounded-full bg-accent/20 w-full h-full" />
       </div>
     )
   }
@@ -320,6 +392,54 @@ export function LoadingSpinner({ className }: { className?: string }) {
       loop={true}
       size="md"
       className={className}
+    />
+  )
+}
+
+// V3: Additional specialized animations
+
+export function HourglassAnimation({ className }: { className?: string }) {
+  return (
+    <LottieAnimation
+      type="hourglass"
+      loop={true}
+      size="lg"
+      className={cn('opacity-80', className)}
+    />
+  )
+}
+
+export function SadEmotionAnimation({ onComplete, className }: { onComplete?: () => void; className?: string }) {
+  return (
+    <LottieAnimation
+      type="sad-emotion"
+      loop={false}
+      size="lg"
+      onComplete={onComplete}
+      className={className}
+    />
+  )
+}
+
+export function CelebrationAnimation({ onComplete, className }: { onComplete?: () => void; className?: string }) {
+  return (
+    <LottieAnimation
+      type="celebration"
+      loop={false}
+      size="xl"
+      onComplete={onComplete}
+      className={className}
+    />
+  )
+}
+
+export function ThinkingAnimation({ className }: { className?: string }) {
+  return (
+    <LottieAnimation
+      type="thinking"
+      loop={true}
+      size="md"
+      className={cn('opacity-70', className)}
     />
   )
 }

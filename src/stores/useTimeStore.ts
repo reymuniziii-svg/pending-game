@@ -7,6 +7,29 @@ import type {
   DeadlineTracker
 } from '@/types'
 
+// V3: Advance mode determines time control style
+export type AdvanceMode = 'auto' | 'manual'
+
+// V3: Transition state for ceremonial month changes
+export type TransitionState = 'idle' | 'teasing' | 'transitioning' | 'revealing'
+
+// V3: Teaser messages for anticipation building
+const TEASER_MESSAGES = [
+  'Something stirs...',
+  'The calendar turns...',
+  'Time moves forward...',
+  'A new month awaits...',
+  'The days pass by...',
+  'Change is coming...',
+]
+
+const FORESHADOWING_MESSAGES = {
+  deadline: 'A deadline approaches...',
+  event: 'Something is about to happen...',
+  quiet: 'Life continues quietly...',
+  important: 'This month feels significant...',
+}
+
 interface TimeState {
   // Current time
   currentMonth: number  // 1-12
@@ -33,6 +56,13 @@ interface TimeState {
 
   // Auto-advance timer ID (for cleanup)
   autoAdvanceTimerId: number | null
+
+  // === V3: Tap-to-Advance System ===
+  advanceMode: AdvanceMode
+  transitionState: TransitionState
+  teaserMessage: string | null
+  upcomingEventHint: string | null  // Foreshadowing for events
+  canAdvance: boolean  // Whether player can tap to advance
 
   // Actions - Basic
   initializeTime: (month: number, year: number) => void
@@ -65,6 +95,16 @@ interface TimeState {
 
   // Internal: Timer management
   setAutoAdvanceTimer: (id: number | null) => void
+
+  // === V3: Tap-to-Advance Actions ===
+  setAdvanceMode: (mode: AdvanceMode) => void
+  startTransition: () => void  // Begin ceremonial month transition
+  completeTransition: () => void  // Finish transition, reveal new month
+  cancelTransition: () => void  // Cancel if interrupted
+  setUpcomingEventHint: (hint: string | null) => void
+  setCanAdvance: (can: boolean) => void
+  getRandomTeaser: () => string
+  getForeshadowingMessage: (type: keyof typeof FORESHADOWING_MESSAGES) => string
 }
 
 const defaultSettings: TimeFlowSettings = {
@@ -90,6 +130,13 @@ const initialState = {
   deadlinePressure: 0,
   activeDeadlines: [] as DeadlineTracker[],
   autoAdvanceTimerId: null,
+
+  // V3 defaults - start in manual mode for BitLife-style gameplay
+  advanceMode: 'manual' as AdvanceMode,
+  transitionState: 'idle' as TransitionState,
+  teaserMessage: null as string | null,
+  upcomingEventHint: null as string | null,
+  canAdvance: true,
 }
 
 export const useTimeStore = create<TimeState>((set, get) => ({
@@ -270,6 +317,41 @@ export const useTimeStore = create<TimeState>((set, get) => ({
   // === Timer Management ===
 
   setAutoAdvanceTimer: (id) => set({ autoAdvanceTimerId: id }),
+
+  // === V3: Tap-to-Advance Implementation ===
+
+  setAdvanceMode: (mode) => set({ advanceMode: mode }),
+
+  startTransition: () => set((state) => {
+    // Select a random teaser message
+    const teaser = TEASER_MESSAGES[Math.floor(Math.random() * TEASER_MESSAGES.length)]
+
+    return {
+      transitionState: 'teasing',
+      teaserMessage: teaser,
+      canAdvance: false,
+    }
+  }),
+
+  completeTransition: () => set({
+    transitionState: 'idle',
+    teaserMessage: null,
+    canAdvance: true,
+  }),
+
+  cancelTransition: () => set({
+    transitionState: 'idle',
+    teaserMessage: null,
+    canAdvance: true,
+  }),
+
+  setUpcomingEventHint: (hint) => set({ upcomingEventHint: hint }),
+
+  setCanAdvance: (can) => set({ canAdvance: can }),
+
+  getRandomTeaser: () => TEASER_MESSAGES[Math.floor(Math.random() * TEASER_MESSAGES.length)],
+
+  getForeshadowingMessage: (type) => FORESHADOWING_MESSAGES[type],
 }))
 
 // Helper function to calculate effective month duration

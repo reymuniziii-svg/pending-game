@@ -6,6 +6,8 @@ import type {
   CompletedEvent,
   EventOutcome,
   GameDate,
+  InterruptPriority,
+  PendingInterrupt,
 } from '@/types'
 import { generateId } from '@/lib/utils'
 
@@ -15,11 +17,23 @@ interface QueuedEvent {
   scheduledDate?: GameDate
 }
 
+// Priority values for sorting (higher = more urgent)
+const INTERRUPT_PRIORITY_VALUES: Record<InterruptPriority, number> = {
+  'critical': 100,
+  'important': 75,
+  'normal': 50,
+  'ambient': 25,
+}
+
 interface EventState {
   // Event queue
   eventQueue: QueuedEvent[]
   currentEvent: GameEvent | null
   currentChoices: EventChoice[]
+
+  // V2: Interrupt queue for time flow
+  pendingInterrupts: PendingInterrupt[]
+  hasInterrupts: boolean
 
   // History
   eventHistory: CompletedEvent[]
@@ -51,12 +65,21 @@ interface EventState {
   isChainActive: (chainId: string) => boolean
   getNextQueuedEvent: () => QueuedEvent | null
   reset: () => void
+
+  // V2: Interrupt actions
+  addInterrupt: (eventId: string, priority: InterruptPriority, date: GameDate) => void
+  getNextInterrupt: () => PendingInterrupt | null
+  removeInterrupt: (eventId: string) => void
+  clearInterrupts: () => void
+  shouldPauseForInterrupt: (autoPauseOnImportant: boolean) => boolean
 }
 
 const initialState = {
   eventQueue: [],
   currentEvent: null,
   currentChoices: [],
+  pendingInterrupts: [] as PendingInterrupt[],
+  hasInterrupts: false,
   eventHistory: [],
   completedEventIds: new Set<string>(),
   activeChains: [],
@@ -181,6 +204,66 @@ export const useEventStore = create<EventState>((set, get) => ({
   getNextQueuedEvent: () => {
     const queue = get().eventQueue
     return queue.length > 0 ? queue[0] : null
+  },
+
+  // === V2: Interrupt Queue ===
+
+  addInterrupt: (eventId, priority, date) => set((state) => {
+    // Don't add duplicate interrupts
+    if (state.pendingInterrupts.some(i => i.eventId === eventId)) {
+      return state
+    }
+
+    const newInterrupt: PendingInterrupt = {
+      eventId,
+      priority,
+      queuedAt: date,
+    }
+
+    const newInterrupts = [...state.pendingInterrupts, newInterrupt]
+    // Sort by priority (critical first)
+    newInterrupts.sort((a, b) =>
+      INTERRUPT_PRIORITY_VALUES[b.priority] - INTERRUPT_PRIORITY_VALUES[a.priority]
+    )
+
+    return {
+      pendingInterrupts: newInterrupts,
+      hasInterrupts: true,
+    }
+  }),
+
+  getNextInterrupt: () => {
+    const interrupts = get().pendingInterrupts
+    return interrupts.length > 0 ? interrupts[0] : null
+  },
+
+  removeInterrupt: (eventId) => set((state) => {
+    const newInterrupts = state.pendingInterrupts.filter(i => i.eventId !== eventId)
+    return {
+      pendingInterrupts: newInterrupts,
+      hasInterrupts: newInterrupts.length > 0,
+    }
+  }),
+
+  clearInterrupts: () => set({
+    pendingInterrupts: [],
+    hasInterrupts: false,
+  }),
+
+  shouldPauseForInterrupt: (autoPauseOnImportant) => {
+    const state = get()
+    if (state.pendingInterrupts.length === 0) return false
+
+    const nextInterrupt = state.pendingInterrupts[0]
+
+    // Always pause for critical interrupts
+    if (nextInterrupt.priority === 'critical') return true
+
+    // Pause for important if auto-pause is enabled
+    if (nextInterrupt.priority === 'important' && autoPauseOnImportant) return true
+
+    // Normal and ambient don't force pause
+    return false
   },
 
   reset: () => set({

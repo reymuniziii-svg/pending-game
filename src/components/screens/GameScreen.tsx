@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useGameStore, useTimeStore, useCharacterStore, useFinanceStore, useEventStore } from '@/stores'
-import { Button, Card, CardHeader, CardTitle, CardContent, Badge, Progress } from '@/components/ui'
+import { Button, Card, CardHeader, CardTitle, CardContent, Badge, Progress, TimeControlBar } from '@/components/ui'
 import { PROFILES } from './CharacterSelect'
-import { useEventEngine } from '@/hooks/useEventEngine'
+import { useEventEngine, useTimeFlow } from '@/hooks'
 import {
   Calendar,
   DollarSign,
@@ -12,6 +12,7 @@ import {
   FileText,
   ChevronRight,
   Pause,
+  Play,
   AlertTriangle,
   Briefcase,
   Plane,
@@ -25,17 +26,26 @@ export function GameScreen() {
     advanceOpeningBeat,
     completeOpeningSequence,
     selectedCharacterId,
-    isPaused,
+    isPaused: isGamePaused,
     setPaused,
   } = useGameStore()
 
-  const { currentMonth, currentYear, getFormattedDate, advanceMonth, totalMonthsElapsed } = useTimeStore()
+  const { currentMonth, currentYear, getFormattedDate, totalMonthsElapsed, flowMode } = useTimeStore()
   const { profile, status, stats } = useCharacterStore()
-  const { bankBalance, getMonthlyNetIncome, processMonthEnd } = useFinanceStore()
+  const { bankBalance, getMonthlyNetIncome } = useFinanceStore()
   const { currentEvent, showingOutcome, lastOutcomeText, hideOutcome, clearCurrentEvent } = useEventStore()
-  const { handleChoiceSelection, triggerRandomEvent } = useEventEngine()
+  const { handleChoiceSelection } = useEventEngine()
 
   const [showMonthSummary, setShowMonthSummary] = useState(false)
+
+  // V2: Time flow system
+  const { isPaused: isTimePaused, pause, resume, skipMonth } = useTimeFlow({
+    enabled: !isInOpeningSequence && !isGamePaused,
+    onMonthAdvance: useCallback(() => {
+      setShowMonthSummary(true)
+      setTimeout(() => setShowMonthSummary(false), 500)
+    }, []),
+  })
 
   // Get the profile data
   const currentProfile = PROFILES.find(p => p.id === selectedCharacterId) || profile
@@ -92,20 +102,8 @@ export function GameScreen() {
   }
 
   // Main game screen
-  const handleAdvanceMonth = () => {
-    const currentDate = { month: currentMonth, year: currentYear }
-    processMonthEnd(currentDate)
-    advanceMonth()
-    setShowMonthSummary(true)
-
-    // Try to trigger a random event after a brief delay
-    setTimeout(() => {
-      setShowMonthSummary(false)
-      triggerRandomEvent()
-    }, 1000)
-  }
-
   const netIncome = getMonthlyNetIncome()
+  const isTimeFlowing = flowMode !== 'paused'
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,14 +113,20 @@ export function GameScreen() {
           <div className="flex items-center gap-4">
             <h1 className="font-serif font-bold text-lg">Pending</h1>
             <div className="h-4 w-px bg-border" />
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{getFormattedDate()}</span>
-            </div>
             <Badge variant="secondary" className="text-xs">
               Year {Math.floor(totalMonthsElapsed / 12) + 1}
             </Badge>
           </div>
+
+          {/* V2: Time Control Bar */}
+          <div className="flex-1 max-w-lg mx-4">
+            <TimeControlBar
+              disabled={!!currentEvent}
+              onPause={() => pause()}
+              onResume={() => resume()}
+            />
+          </div>
+
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => setPaused(true)}>
               <Pause className="h-4 w-4" />
@@ -296,15 +300,40 @@ export function GameScreen() {
           ) : (
             <Card>
               <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground mb-4">
-                  {showMonthSummary
-                    ? 'Time passes...'
-                    : 'The days pass quietly. Work, home, waiting.'}
-                </p>
-                <Button onClick={handleAdvanceMonth}>
-                  <ChevronRight className="mr-2 h-4 w-4" />
-                  Next Month
-                </Button>
+                {showMonthSummary ? (
+                  <div className="animate-fade-in">
+                    <p className="text-lg text-muted-foreground mb-2">Time passes...</p>
+                    <p className="text-sm text-muted-foreground">{getFormattedDate()}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                      {isTimeFlowing
+                        ? 'The days pass by...'
+                        : 'The days pass quietly. Work, home, waiting.'}
+                    </p>
+                    {!isTimeFlowing && (
+                      <div className="flex justify-center gap-2">
+                        <Button onClick={() => resume()}>
+                          <Play className="mr-2 h-4 w-4" />
+                          Start Time
+                        </Button>
+                        <Button variant="outline" onClick={() => skipMonth()}>
+                          <ChevronRight className="mr-2 h-4 w-4" />
+                          Skip Month
+                        </Button>
+                      </div>
+                    )}
+                    {isTimeFlowing && (
+                      <div className="flex justify-center">
+                        <Button variant="outline" onClick={() => pause()}>
+                          <Pause className="mr-2 h-4 w-4" />
+                          Pause
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -367,7 +396,7 @@ export function GameScreen() {
       </div>
 
       {/* Pause Menu Overlay */}
-      {isPaused && (
+      {isGamePaused && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <Card className="w-full max-w-sm">
             <CardHeader>

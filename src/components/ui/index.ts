@@ -15,3 +15,4 @@ export {
 export { Progress } from './Progress'
 export { Badge, badgeVariants } from './Badge'
 export { Alert, AlertTitle, AlertDescription } from './Alert'
+export { TimeControlBar } from './TimeControlBar'

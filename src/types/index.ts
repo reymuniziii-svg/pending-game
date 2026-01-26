@@ -20,6 +20,37 @@ export const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ] as const
 
+// Time Flow System (V2)
+export type TimeFlowMode = 'paused' | 'normal' | 'fast' | 'faster'
+export type TimeFlowSpeed = 1 | 2 | 4
+
+export interface TimeFlowSettings {
+  monthDurationMs: number  // Base ms per month at 1x speed (default: 3000)
+  autoPauseOnImportant: boolean
+  quietPeriodAutoSkip: boolean
+}
+
+// Event Interrupt System
+export type InterruptPriority = 'critical' | 'important' | 'normal' | 'ambient'
+
+export interface PendingInterrupt {
+  eventId: string
+  priority: InterruptPriority
+  queuedAt: GameDate
+}
+
+// Deadline Pressure System
+export interface DeadlineTracker {
+  id: string
+  eventId: string
+  formId?: FormType
+  deadline: GameDate
+  severity: 'minor' | 'major' | 'critical'
+  warningThresholds: number[]  // Months before deadline to warn
+  description: string
+  isTriggered: boolean
+}
+
 // ============ IMMIGRATION STATUS ============
 
 export type ImmigrationStatusType =
@@ -184,6 +215,13 @@ export interface GameEvent {
   title: string
   description: string
   imageKey?: string
+  sceneType?: SceneType
+
+  // V2: Event variants based on flags
+  variants?: EventVariant[]
+
+  // V2: Interrupt priority for time flow
+  interruptPriority?: InterruptPriority
 
   // Timing
   timing: EventTiming
@@ -317,7 +355,27 @@ export interface EventChain {
   currentPosition: number
   isInterruptible: boolean
   completionOutcomes?: EventOutcome[]
+  branchPoints?: BranchPoint[]
+  requiredFlags?: string[]
+  characterIds?: string[]
 }
+
+export interface BranchPoint {
+  afterEventId: string
+  condition: EventCondition
+  alternatePath: string[]  // Alternative event sequence
+}
+
+// Flag-reactive event variants
+export interface EventVariant {
+  condition: EventCondition
+  descriptionOverride?: string
+  titleOverride?: string
+  choicesOverride?: EventChoice[]
+}
+
+// Scene types for visual atmosphere
+export type SceneType = 'home' | 'uscis' | 'work' | 'airport' | 'court' | 'community' | 'hospital' | 'street' | 'neutral'
 
 export interface CompletedEvent {
   eventId: string

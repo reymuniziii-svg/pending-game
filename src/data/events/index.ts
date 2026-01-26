@@ -1,4 +1,10 @@
-import type { GameEvent } from '@/types'
+import type { GameEvent, EventChain } from '@/types'
+
+// Import chain events
+import { MARIA_CHAIN_EVENTS, MARIA_CHAINS } from './maria-chains'
+import { DAVID_CHAIN_EVENTS, DAVID_CHAINS } from './david-chains'
+import { FATIMA_CHAIN_EVENTS, FATIMA_CHAINS } from './fatima-chains'
+import { ELENA_CHAIN_EVENTS, ELENA_CHAINS } from './elena-chains'
 
 // ============ MARIA (DACA) EVENTS ============
 
@@ -4352,17 +4358,41 @@ const SHARED_EVENTS: GameEvent[] = [
 
 export const EVENTS: GameEvent[] = [
   ...MARIA_EVENTS,
+  ...MARIA_CHAIN_EVENTS,
   ...DAVID_EVENTS,
+  ...DAVID_CHAIN_EVENTS,
   ...FATIMA_EVENTS,
+  ...FATIMA_CHAIN_EVENTS,
   ...ELENA_EVENTS,
+  ...ELENA_CHAIN_EVENTS,
   ...SHARED_EVENTS,
 ]
 
 // Export by category for filtering
 export const EVENTS_BY_CHARACTER = {
-  maria: MARIA_EVENTS,
-  david: DAVID_EVENTS,
-  fatima: FATIMA_EVENTS,
-  elena: ELENA_EVENTS,
+  maria: [...MARIA_EVENTS, ...MARIA_CHAIN_EVENTS],
+  david: [...DAVID_EVENTS, ...DAVID_CHAIN_EVENTS],
+  fatima: [...FATIMA_EVENTS, ...FATIMA_CHAIN_EVENTS],
+  elena: [...ELENA_EVENTS, ...ELENA_CHAIN_EVENTS],
   shared: SHARED_EVENTS,
+}
+
+// Export all event chains for chain tracking
+export const EVENT_CHAINS: EventChain[] = [
+  ...MARIA_CHAINS,
+  ...DAVID_CHAINS,
+  ...FATIMA_CHAINS,
+  ...ELENA_CHAINS,
+]
+
+// Re-export chain events and definitions for direct access
+export {
+  MARIA_CHAIN_EVENTS,
+  MARIA_CHAINS,
+  DAVID_CHAIN_EVENTS,
+  DAVID_CHAINS,
+  FATIMA_CHAIN_EVENTS,
+  FATIMA_CHAINS,
+  ELENA_CHAIN_EVENTS,
+  ELENA_CHAINS,
 }

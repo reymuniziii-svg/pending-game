@@ -55,7 +55,43 @@ export default {
           greencard: '#27ae60',
           citizen: '#2ecc71',
           pending: '#f39c12',
-        }
+        },
+        // === V2: Dual Color System ===
+        // Life palette (warm) - human moments
+        life: {
+          bg: '#fefae0',           // Cream
+          text: '#3d405b',         // Warm charcoal
+          accent: '#d4a373',       // Amber/honey
+          secondary: '#e9c46a',    // Warm gold
+          muted: '#f5f0e1',        // Soft cream
+        },
+        // System palette (cold) - bureaucratic moments
+        system: {
+          bg: '#f8fafc',           // Clinical white
+          text: '#0f172a',         // Cold black
+          accent: '#64748b',       // Slate
+          secondary: '#94a3b8',    // Light slate
+          danger: '#dc2626',       // Bureaucratic red
+          muted: '#e2e8f0',        // Cool gray
+        },
+        // Character signature colors
+        character: {
+          maria: '#c87941',        // Terracotta
+          david: '#5a9178',        // Muted jade
+          fatima: '#d4a373',       // Rich amber
+          elena: '#c9a9a6',        // Warm rose
+        },
+        // Scene atmosphere colors
+        scene: {
+          home: '#fef3c7',         // Warm amber
+          uscis: '#e2e8f0',        // Steel gray
+          work: '#dbeafe',         // Soft blue
+          airport: '#374151',      // Dark slate
+          court: '#fde68a',        // Amber
+          community: '#dcfce7',    // Soft green
+          hospital: '#f1f5f9',     // Clinical
+          street: '#f3f4f6',       // Neutral
+        },
       },
       fontFamily: {
         serif: ['Source Serif Pro', 'Georgia', 'serif'],
@@ -90,7 +126,14 @@ export default {
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
         'slide-up': 'slideUp 0.3s ease-out',
+        'slide-down': 'slideDown 0.3s ease-out',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-urgent': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'scene-fade': 'sceneFade 0.5s ease-in-out',
+        'vignette-pulse': 'vignettePulse 2s ease-in-out infinite',
+        'typewriter': 'typewriter 2s steps(40) forwards',
+        'blink': 'blink 1s step-end infinite',
+        'stamp': 'stamp 0.3s ease-out forwards',
       },
       keyframes: {
         fadeIn: {
@@ -101,6 +144,38 @@ export default {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+        slideDown: {
+          '0%': { transform: 'translateY(-10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        sceneFade: {
+          '0%': { opacity: '0.8' },
+          '100%': { opacity: '1' },
+        },
+        vignettePulse: {
+          '0%, 100%': { boxShadow: 'inset 0 0 80px rgba(0,0,0,0.3)' },
+          '50%': { boxShadow: 'inset 0 0 100px rgba(0,0,0,0.4)' },
+        },
+        typewriter: {
+          'from': { width: '0' },
+          'to': { width: '100%' },
+        },
+        blink: {
+          '0%, 100%': { borderColor: 'transparent' },
+          '50%': { borderColor: 'currentColor' },
+        },
+        stamp: {
+          '0%': { transform: 'scale(2) rotate(-15deg)', opacity: '0' },
+          '50%': { transform: 'scale(1.1) rotate(-5deg)', opacity: '1' },
+          '100%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
+        },
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
+      transitionDuration: {
+        '400': '400ms',
+        '500': '500ms',
       },
     },
   },

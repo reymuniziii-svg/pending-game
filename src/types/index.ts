@@ -309,6 +309,9 @@ export interface EventChoice {
   // Visual
   isRecommended?: boolean
   isDangerous?: boolean
+
+  // For branching events with random outcomes
+  probability?: number // 0-100, for weighted random selection
 }
 
 export interface ChoiceCost {

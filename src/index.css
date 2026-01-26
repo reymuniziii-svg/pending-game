@@ -209,6 +209,317 @@
   animation: typewriter 2s steps(40) forwards;
 }
 
+/* ============ V2: DUAL COLOR SYSTEM ============ */
+
+/* Life Mode - Warm, human moments */
+.mode-life {
+  --mode-bg: #fefae0;
+  --mode-text: #3d405b;
+  --mode-accent: #d4a373;
+  --mode-muted: #f5f0e1;
+  font-family: 'Source Serif Pro', Georgia, serif;
+}
+
+.mode-life .card {
+  @apply bg-white/90 shadow-amber-100/50;
+  border-color: rgba(212, 163, 115, 0.2);
+}
+
+.mode-life .narrative {
+  color: #3d405b;
+  @apply leading-relaxed;
+}
+
+/* System Mode - Cold, bureaucratic moments */
+.mode-system {
+  --mode-bg: #f8fafc;
+  --mode-text: #0f172a;
+  --mode-accent: #64748b;
+  --mode-muted: #e2e8f0;
+  font-family: 'IBM Plex Mono', Consolas, monospace;
+}
+
+.mode-system .card {
+  @apply bg-white shadow-slate-200/50;
+  border-color: rgba(100, 116, 139, 0.3);
+  border-radius: 2px;
+}
+
+.mode-system .narrative {
+  color: #0f172a;
+  @apply font-mono text-sm leading-normal;
+}
+
+.mode-system .form-box {
+  @apply bg-slate-50 border-slate-300;
+}
+
+/* Mode Transitions */
+.mode-transition {
+  transition: background-color 0.5s ease-in-out,
+              color 0.3s ease-in-out,
+              border-color 0.3s ease-in-out;
+}
+
+/* ============ V2: SCENE ATMOSPHERES ============ */
+
+/* Scene-specific styling */
+[data-scene="home"] {
+  background: linear-gradient(135deg,
+    #fef3c7 0%,
+    rgba(254, 243, 199, 0.3) 50%,
+    rgba(255, 255, 255, 0.8) 100%);
+}
+
+[data-scene="uscis"] {
+  background: linear-gradient(135deg,
+    #e2e8f0 0%,
+    rgba(241, 245, 249, 0.8) 50%,
+    rgba(255, 255, 255, 0.9) 100%);
+}
+
+[data-scene="work"] {
+  background: linear-gradient(135deg,
+    #dbeafe 0%,
+    rgba(241, 245, 249, 0.5) 50%,
+    rgba(255, 255, 255, 0.9) 100%);
+}
+
+[data-scene="airport"] {
+  background: linear-gradient(135deg,
+    rgba(55, 65, 81, 0.1) 0%,
+    rgba(107, 114, 128, 0.15) 50%,
+    rgba(156, 163, 175, 0.1) 100%);
+}
+
+[data-scene="court"] {
+  background: linear-gradient(135deg,
+    #fde68a 0%,
+    rgba(245, 243, 240, 0.8) 50%,
+    rgba(255, 255, 255, 0.9) 100%);
+}
+
+[data-scene="community"] {
+  background: linear-gradient(135deg,
+    #dcfce7 0%,
+    rgba(236, 253, 245, 0.5) 50%,
+    rgba(255, 255, 255, 0.9) 100%);
+}
+
+[data-scene="hospital"] {
+  background: linear-gradient(135deg,
+    #f1f5f9 0%,
+    rgba(248, 250, 252, 0.9) 50%,
+    rgba(255, 255, 255, 1) 100%);
+}
+
+/* Vignette effect for heavy moments */
+.vignette-light {
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.15);
+}
+
+.vignette-medium {
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.2);
+}
+
+.vignette-heavy {
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.3);
+}
+
+/* ============ V2: CHARACTER SIGNATURES ============ */
+
+.character-maria {
+  --character-color: #c87941;
+}
+
+.character-david {
+  --character-color: #5a9178;
+}
+
+.character-fatima {
+  --character-color: #d4a373;
+}
+
+.character-elena {
+  --character-color: #c9a9a6;
+}
+
+/* Character quote styling */
+.character-quote {
+  @apply font-serif italic text-lg;
+  border-left: 3px solid var(--character-color, #3498db);
+  padding-left: 1rem;
+}
+
+/* Character accent border */
+.character-accent-border {
+  border-left: 4px solid var(--character-color, #3498db);
+}
+
+/* ============ V2: DECISION STYLING ============ */
+
+/* Heavy decision card */
+.decision-heavy {
+  @apply ring-2 ring-warning/30;
+  animation: vignettePulse 3s ease-in-out infinite;
+}
+
+@keyframes vignettePulse {
+  0%, 100% {
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.05),
+                0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.08),
+                0 6px 24px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Stake badges */
+.stake-badge {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium;
+}
+
+.stake-money {
+  @apply bg-amber-100 text-amber-800;
+}
+
+.stake-time {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.stake-relationship {
+  @apply bg-pink-100 text-pink-800;
+}
+
+.stake-stress {
+  @apply bg-orange-100 text-orange-800;
+}
+
+/* ============ V2: TIME FLOW VISUAL FEEDBACK ============ */
+
+/* Time flowing indicator */
+.time-flowing {
+  @apply relative;
+}
+
+.time-flowing::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    #3498db 50%,
+    transparent 100%);
+  animation: timeFlow 2s linear infinite;
+}
+
+@keyframes timeFlow {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Deadline pressure indicator */
+.deadline-pressure-low {
+  border-color: rgba(52, 152, 219, 0.5);
+}
+
+.deadline-pressure-medium {
+  border-color: rgba(230, 126, 34, 0.5);
+  background-color: rgba(230, 126, 34, 0.05);
+}
+
+.deadline-pressure-high {
+  border-color: rgba(192, 57, 43, 0.5);
+  background-color: rgba(192, 57, 43, 0.05);
+  animation: pressurePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pressurePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+/* Quiet period styling */
+.quiet-period {
+  @apply bg-muted/30 border-dashed;
+  border-color: rgba(127, 140, 141, 0.3);
+}
+
+.quiet-period-text {
+  @apply text-muted-foreground italic;
+}
+
+/* ============ V2: FORM STAMPS ============ */
+
+/* Approval stamp */
+.stamp-approved {
+  @apply text-success font-bold uppercase tracking-wider;
+  transform: rotate(-5deg);
+  border: 3px solid currentColor;
+  padding: 0.5rem 1rem;
+  animation: stampIn 0.3s ease-out forwards;
+}
+
+/* Denial stamp */
+.stamp-denied {
+  @apply text-danger font-bold uppercase tracking-wider;
+  transform: rotate(3deg);
+  border: 3px solid currentColor;
+  padding: 0.5rem 1rem;
+  animation: stampIn 0.3s ease-out forwards;
+}
+
+@keyframes stampIn {
+  0% {
+    transform: scale(2) rotate(-15deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1) rotate(-5deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(var(--stamp-rotation, -5deg));
+    opacity: 1;
+  }
+}
+
+/* Pending status */
+.stamp-pending {
+  @apply text-warning font-bold uppercase tracking-wider;
+  border: 2px dashed currentColor;
+  padding: 0.5rem 1rem;
+}
+
+/* ============ V2: TRANSITIONS ============ */
+
+/* Scene transition overlay */
+.scene-transition-overlay {
+  @apply fixed inset-0 pointer-events-none z-50;
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* Time skip text */
+.time-skip-text {
+  @apply text-center text-muted-foreground;
+  animation: fadeInSlide 0.8s ease-out;
+}
+
+@keyframes fadeInSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Print styles */
 @media print {
   body {

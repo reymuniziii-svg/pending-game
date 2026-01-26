@@ -40,3 +40,12 @@ export { DecisionCard, SimpleDecisionCard } from './DecisionCard'
 // V3: Event & Outcome Components
 export { OutcomeDisplay, CompactOutcome, MoneyCounter } from './OutcomeDisplay'
 export { EventArrival, ArrivalIndicator } from './EventArrival'
+
+// V3: Glossary Components
+export { GlossaryTerm, SimpleGlossaryTerm, StatusGlossaryBadge } from './GlossaryTerm'
+export { GlossaryPopup, GlossaryMiniPopup } from './GlossaryPopup'
+export { GlossaryText, GlossaryParagraph, GlossaryDescription, NarrativeText, hasGlossaryTerms } from './GlossaryText'
+
+// V3: Achievement Components
+export { AchievementNotification, AchievementBadge } from './AchievementNotification'
+export { AchievementDisplay, AchievementProgress, AchievementSummary } from './AchievementDisplay'

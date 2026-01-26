@@ -1,6 +1,6 @@
 # Pending V3: Implementation Status
 
-**Last Updated:** January 25, 2026
+**Last Updated:** January 26, 2026
 **Plan File:** `/Users/rey/.claude/plans/radiant-conjuring-wren.md`
 
 ---
@@ -30,49 +30,47 @@
 | `src/components/ui/SceneWrapper.tsx` | Added crossfade transitions, ambient particles, mood-based overlays, `TimeSkipTransition` |
 | `src/components/ui/index.ts` | Updated exports for all new components |
 
----
+### Week 3: Educational Glossary System (DONE)
 
-## Remaining
+| File | Changes |
+|------|---------|
+| `src/data/glossary/terms.ts` | NEW - 25 immigration term definitions with categories, aliases, related terms, misconceptions |
+| `src/data/glossary/index.ts` | NEW - Text parsing utilities, term lookup, category info |
+| `src/stores/useGlossaryStore.ts` | NEW - Track viewed terms, active term, expansion state |
+| `src/components/ui/GlossaryTerm.tsx` | NEW - Clickable inline term with dotted underline, badge variant |
+| `src/components/ui/GlossaryPopup.tsx` | NEW - Modal with definition, "Learn more", real-world context, misconceptions |
+| `src/components/ui/GlossaryText.tsx` | NEW - Auto-parse narrative text for terms |
+| `src/stores/index.ts` | Added glossary store exports |
+| `src/components/ui/index.ts` | Added glossary component exports |
 
-### Week 3: Educational Glossary System
-
-**New files to create:**
-- `src/data/glossary/terms.ts` - 20+ immigration term definitions
-- `src/data/glossary/index.ts` - Exports and utilities
-- `src/stores/useGlossaryStore.ts` - Track viewed terms
-- `src/components/ui/GlossaryTerm.tsx` - Clickable inline term (dotted underline)
-- `src/components/ui/GlossaryPopup.tsx` - Modal with definition, "Learn more", real-world context
-- `src/components/ui/GlossaryText.tsx` - Auto-parse narrative text for terms
-
-**High-priority terms:**
+**Terms included (25):**
 - Agencies: USCIS, ICE, CBP, EOIR
 - Statuses: DACA, TPS, Green Card, H-1B, Asylum
 - Forms: I-130, I-485, I-601A, I-765, I-821D
-- Concepts: EAD, Advance Parole, Unlawful Presence, Priority Date
+- Concepts: EAD, Advance Parole, Unlawful Presence, Priority Date, Naturalization, RFE, NOID
 - Penalties: 3-Year Bar, 10-Year Bar, Removal Proceedings
 
-**Integration points:**
-- DecisionCard descriptions → GlossaryText
-- Outcome text → GlossaryText
-- Status badges → Clickable with GlossaryTerm
+### Week 4: Achievement System (DONE)
 
-### Week 4: Achievement System
+| File | Changes |
+|------|---------|
+| `src/data/achievements.ts` | NEW - 30 achievement definitions across 5 categories with rarity tiers |
+| `src/stores/useAchievementStore.ts` | NEW - Track unlocked achievements, notification queue, primary ribbon |
+| `src/components/ui/AchievementNotification.tsx` | NEW - Animated unlock toast with auto-dismiss, sparkle effects |
+| `src/components/ui/AchievementDisplay.tsx` | NEW - Full display for ending screen, ribbons, progress bar |
+| `src/stores/index.ts` | Added achievement store exports |
+| `src/components/ui/index.ts` | Added achievement component exports |
 
-**New files to create:**
-- `src/stores/useAchievementStore.ts` - Achievement tracking
-- `src/data/achievements.ts` - 25+ achievement definitions
-- `src/components/ui/AchievementNotification.tsx` - Unlock notification toast
+**Achievement categories (30 total):**
+- Journey (7): First Steps, Year One, Half a Decade, The Long Wait, Paper Trail, Bureaucracy Veteran, Interview Ready
+- Resilience (6): Unbroken, Stress Tested, Second Wind, Never Give Up, Financial Survivor, The Long Game
+- Community (6): Connected, Support Network, Voice for Others, Mentor, Family First, Found Family
+- Sacrifice (5): The Hardest Choice, Delayed Dreams, Love Across Borders, Bitter Medicine, Ultimate Sacrifice
+- Triumph Ribbons (6): American Dream (Gold), Green Card (Emerald), Dreamer's Hope (Blue), Survivor (Silver), Voice of Change (Purple), Homeward (Amber)
 
-**Achievement categories:**
-- Journey: First Steps, Half a Decade, The Long Wait, Paper Trail
-- Resilience: Unbroken, Stress Tested, Second Wind
-- Community: Connected, Support Network, Voice for Others
-- Sacrifice: The Hardest Choice, Delayed Dreams, Love Across Borders
-- Triumph Ribbons: Citizen (Gold), Permanent Resident (Green), Dreamer (Blue), Survivor (Silver)
+---
 
-**Integration:**
-- Hook achievement checks into event engine
-- Update EndingScreen with ribbon display
+## Remaining
 
 ### Week 5: Polish & Mini-Games (Optional)
 
@@ -110,6 +108,20 @@
 - URLs defined in `ANIMATION_URLS` constant
 - `useAnimationData` hook handles fetching and caching
 - Falls back to inline loading animation on error
+
+**Glossary System:**
+- `parseTextForTerms()` uses regex to identify glossary terms in narrative text
+- Only first occurrence of each term is highlighted (avoids clutter)
+- Terms have aliases for flexible matching (e.g., "DACA", "Deferred Action for Childhood Arrivals", "Dreamer")
+- Popup shows: short definition, expandable full definition, real-world context, common misconceptions, related terms
+- Category colors: Agency (blue), Status (emerald), Form (purple), Concept (amber), Penalty (red)
+
+**Achievement System:**
+- 30 achievements across 5 categories with 5 rarity tiers (common → legendary)
+- Notification queue ensures achievements display sequentially
+- Triumph Ribbons have special gradient styling for ending screen display
+- `checkAndUnlock()` allows batch-checking multiple achievements at once
+- Secret achievements have hidden names/descriptions until unlocked
 
 ---
 

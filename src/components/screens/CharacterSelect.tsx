@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGameStore, useCharacterStore, useTimeStore, useFinanceStore, useRelationshipStore } from '@/stores'
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, CharacterPortrait } from '@/components/ui'
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CharacterPortrait } from '@/components/ui'
 import { ArrowLeft, Briefcase, MapPin, Clock } from 'lucide-react'
 import type { CharacterProfile } from '@/types'
 
@@ -197,14 +197,6 @@ export function CharacterSelect() {
     startNewGame(selectedProfile.id)
   }
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'standard': return 'success'
-      case 'challenging': return 'warning'
-      case 'brutal': return 'danger'
-      default: return 'secondary'
-    }
-  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -235,15 +227,8 @@ export function CharacterSelect() {
                 <div className="flex items-start gap-4">
                   <CharacterPortrait characterId={profile.id} size="md" />
                   <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-xl">{profile.name}</CardTitle>
-                        <CardDescription className="mt-1">{profile.tagline}</CardDescription>
-                      </div>
-                      <Badge variant={getDifficultyColor(profile.difficulty) as any}>
-                        {profile.difficulty}
-                      </Badge>
-                    </div>
+                    <CardTitle className="text-xl">{profile.name}</CardTitle>
+                    <CardDescription className="mt-1">{profile.tagline}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -260,7 +245,7 @@ export function CharacterSelect() {
                     <span>{profile.initialStatus.replace(/-/g, ' ').toUpperCase()}</span>
                   </div>
                   <p className="text-foreground/80 line-clamp-2">
-                    {profile.difficultyReason}
+                    {profile.backstory.slice(0, 120)}...
                   </p>
                 </div>
               </CardContent>

@@ -33,13 +33,18 @@ Preferred communication style: Simple, everyday language.
 ### Game Systems
 
 **Time Flow System**: 
+- Day-based time progression with 100ms tick rate
+- Tracks currentDay/currentMonth/currentYear and totalDaysElapsed
 - Configurable speed (1x, 2x, 4x)
 - Auto-pause on important events
 - Quiet period handling for time skips
 - Deadline pressure tracking
+- daysSinceLastEvent ensures events occur at least every 30 days
 
 **Event Engine**:
 - Condition-based event triggering (status, flags, stats, dates)
+- Random event eligibility uses totalDaysElapsed (earliestMonth/latestMonth converted to days)
+- Scheduled events use absolute month/year dates via addMonths utility
 - Event chains for multi-part storylines (4-8 events deep)
 - Interrupt priority system (critical, important, normal, ambient)
 - Weighted random selection for variety

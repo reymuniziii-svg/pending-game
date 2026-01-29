@@ -24,7 +24,7 @@ export function useEventEngine() {
   const { queueEvent, setCurrentEvent, clearCurrentEvent, hasCompletedEvent, completeEvent, getScheduledEventsForDate } = useEventStore()
   const { status, stats, flags, getFlag, setFlag, modifyStat, profile } = useCharacterStore()
   const { bankBalance, canAfford } = useFinanceStore()
-  const { currentMonth, currentYear, getCurrentDate } = useTimeStore()
+  const { currentMonth, currentYear, getCurrentDate, totalDaysElapsed } = useTimeStore()
   const { getRelationship } = useRelationshipStore()
   const { selectedCharacterId } = useGameStore()
 
@@ -127,8 +127,25 @@ export function useEventEngine() {
       }
     }
 
+    // Check timing constraints for random events (convert months to days)
+    if (event.timing.type === 'random') {
+      const timing = event.timing
+      if (timing.earliestMonth !== undefined) {
+        const earliestDays = timing.earliestMonth * 30
+        if (totalDaysElapsed < earliestDays) {
+          return false
+        }
+      }
+      if (timing.latestMonth !== undefined) {
+        const latestDays = timing.latestMonth * 30
+        if (totalDaysElapsed > latestDays) {
+          return false
+        }
+      }
+    }
+
     return true
-  }, [hasCompletedEvent, selectedCharacterId, status, evaluateConditions])
+  }, [hasCompletedEvent, selectedCharacterId, status, evaluateConditions, totalDaysElapsed])
 
   // Get all eligible events for the current state
   const getEligibleEvents = useCallback((): GameEvent[] => {

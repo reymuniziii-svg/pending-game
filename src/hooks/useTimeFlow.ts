@@ -1,21 +1,21 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { useTimeStore, useEventStore, useFinanceStore } from '@/stores'
 import { useEventEngine } from './useEventEngine'
-import { getEffectiveMonthDuration } from '@/stores/useTimeStore'
+import { getEffectiveDayDuration } from '@/stores/useTimeStore'
 import type { AdvanceMode } from '@/stores/useTimeStore'
 
 interface UseTimeFlowOptions {
   enabled?: boolean
-  onMonthAdvance?: () => void
+  onDayAdvance?: () => void
   onEventTriggered?: (eventId: string) => void
-  onQuietPeriodStart?: (months: number) => void
+  onQuietPeriodStart?: (days: number) => void
   onForeshadowing?: (hint: string) => void  // V3: Foreshadowing callback
 }
 
 export function useTimeFlow(options: UseTimeFlowOptions = {}) {
   const {
     enabled = true,
-    onMonthAdvance,
+    onDayAdvance,
     onEventTriggered,
     onQuietPeriodStart,
     onForeshadowing,
@@ -31,13 +31,16 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     settings,
     deadlinePressure,
     isQuietPeriod,
-    quietPeriodMonths,
-    advanceMonth,
-    advanceMonths,
+    quietPeriodDays,
+    advanceDay,
+    advanceDays,
     endQuietPeriod,
     updateDeadlinePressure,
     getCurrentDate,
     setAutoAdvanceTimer,
+    daysSinceLastEvent,
+    resetDaysSinceEvent,
+    isMonthEnd,
     // V3: Tap-to-advance state
     advanceMode,
     transitionState,
@@ -73,20 +76,23 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     }
   }, [getCurrentDate, checkForUpcomingEvents, setUpcomingEventHint, onForeshadowing])
 
-  // Process a single month advance
-  const processMonth = useCallback(() => {
+  // Process a single day advance
+  const processDay = useCallback(() => {
     if (isProcessingRef.current) return false
     isProcessingRef.current = true
 
     try {
       const currentDate = getCurrentDate()
-
-      // Process finances
-      processMonthEnd(currentDate)
+      const wasMonthEnd = isMonthEnd()
 
       // Advance time
-      advanceMonth()
-      onMonthAdvance?.()
+      advanceDay()
+      onDayAdvance?.()
+
+      // Process finances at month end
+      if (wasMonthEnd) {
+        processMonthEnd(currentDate)
+      }
 
       // Update deadline pressure
       updateDeadlinePressure()
@@ -99,31 +105,40 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
           useTimeStore.getState().pause()
           onEventTriggered?.(interrupt.eventId)
           removeInterrupt(interrupt.eventId)
+          resetDaysSinceEvent()
           isProcessingRef.current = false
           return true  // Event triggered
         }
       }
 
-      // Try to trigger a random event
-      const eventTriggered = triggerRandomEvent()
-      if (eventTriggered) {
-        // Pause while event is shown
-        useTimeStore.getState().pause()
-        isProcessingRef.current = false
-        return true
+      // Try to trigger a random event (more likely the longer since last event)
+      // Guarantee something happens within 30 days
+      const eventChance = Math.min(0.1 + (daysSinceLastEvent / 30) * 0.9, 1.0)
+      const shouldTryEvent = Math.random() < eventChance || daysSinceLastEvent >= 30
+
+      if (shouldTryEvent) {
+        const eventTriggered = triggerRandomEvent()
+        if (eventTriggered) {
+          // Pause while event is shown
+          useTimeStore.getState().pause()
+          resetDaysSinceEvent()
+          isProcessingRef.current = false
+          return true
+        }
       }
 
       isProcessingRef.current = false
       return false  // No event
     } catch (error) {
-      console.error('Error processing month:', error)
+      console.error('Error processing day:', error)
       isProcessingRef.current = false
       return false
     }
   }, [
     getCurrentDate,
+    isMonthEnd,
     processMonthEnd,
-    advanceMonth,
+    advanceDay,
     updateDeadlinePressure,
     hasInterrupts,
     getNextInterrupt,
@@ -131,33 +146,45 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     settings.autoPauseOnImportant,
     removeInterrupt,
     triggerRandomEvent,
-    onMonthAdvance,
+    daysSinceLastEvent,
+    resetDaysSinceEvent,
+    onDayAdvance,
     onEventTriggered,
   ])
 
   // Handle quiet period skip
   const processQuietPeriod = useCallback(() => {
-    if (!isQuietPeriod || quietPeriodMonths <= 0) return
+    if (!isQuietPeriod || quietPeriodDays <= 0) return
 
     if (settings.quietPeriodAutoSkip) {
-      // Advance multiple months at once
+      // Advance multiple days at once
       const currentDate = getCurrentDate()
 
-      for (let i = 0; i < quietPeriodMonths; i++) {
-        processMonthEnd(currentDate)
+      // Process month ends within the skip period
+      let daysToProcess = quietPeriodDays
+      while (daysToProcess > 0) {
+        const daysInCurrentMonth = useTimeStore.getState().getDaysInCurrentMonth()
+        const currentDay = useTimeStore.getState().currentDay
+        const daysUntilMonthEnd = daysInCurrentMonth - currentDay
+
+        if (daysUntilMonthEnd < daysToProcess) {
+          // Process month end
+          processMonthEnd(getCurrentDate())
+        }
+        daysToProcess -= Math.min(daysUntilMonthEnd + 1, daysToProcess)
       }
 
-      advanceMonths(quietPeriodMonths)
+      advanceDays(quietPeriodDays)
       endQuietPeriod()
-      onQuietPeriodStart?.(quietPeriodMonths)
+      onQuietPeriodStart?.(quietPeriodDays)
     }
   }, [
     isQuietPeriod,
-    quietPeriodMonths,
+    quietPeriodDays,
     settings.quietPeriodAutoSkip,
     getCurrentDate,
     processMonthEnd,
-    advanceMonths,
+    advanceDays,
     endQuietPeriod,
     onQuietPeriodStart,
   ])
@@ -169,19 +196,19 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     }
 
     // Handle quiet periods
-    if (isQuietPeriod && quietPeriodMonths > 0) {
+    if (isQuietPeriod && quietPeriodDays > 0) {
       processQuietPeriod()
       return true
     }
 
-    // Process the month
-    const eventTriggered = processMonth()
+    // Process the day
+    const eventTriggered = processDay()
 
-    // Update foreshadowing for next month after a delay
+    // Update foreshadowing for next day after a delay
     setTimeout(updateForeshadowing, 100)
 
     return eventTriggered
-  }, [advanceMode, currentEvent, isQuietPeriod, quietPeriodMonths, processQuietPeriod, processMonth, updateForeshadowing])
+  }, [advanceMode, currentEvent, isQuietPeriod, quietPeriodDays, processQuietPeriod, processDay, updateForeshadowing])
 
   // Main timer effect (only for auto mode)
   useEffect(() => {
@@ -210,11 +237,11 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     }
 
     // Calculate delay based on speed and pressure
-    const delay = getEffectiveMonthDuration({ settings, flowSpeed, deadlinePressure })
+    const delay = getEffectiveDayDuration({ settings, flowSpeed, deadlinePressure })
 
     // Set up the timer
     timerRef.current = window.setTimeout(() => {
-      processMonth()
+      processDay()
     }, delay)
 
     setAutoAdvanceTimer(timerRef.current)
@@ -233,7 +260,7 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     settings,
     deadlinePressure,
     isQuietPeriod,
-    processMonth,
+    processDay,
     processQuietPeriod,
     setAutoAdvanceTimer,
     updateForeshadowing,
@@ -251,9 +278,9 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     }
   }, [currentEvent])
 
-  const skipMonth = useCallback(() => {
-    processMonth()
-  }, [processMonth])
+  const skipDay = useCallback(() => {
+    processDay()
+  }, [processDay])
 
   // V3: Toggle between auto and manual mode
   const toggleAdvanceMode = useCallback(() => {
@@ -274,7 +301,7 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     deadlinePressure,
     pause,
     resume,
-    skipMonth,
+    skipDay,
 
     // V3: Tap-to-advance additions
     advanceMode,

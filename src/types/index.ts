@@ -11,6 +11,7 @@ export type ScreenType =
 // ============ TIME ============
 
 export interface GameDate {
+  day: number    // 1-28/30/31
   month: number  // 1-12
   year: number
 }
@@ -20,12 +21,16 @@ export const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ] as const
 
+export const DAYS_IN_MONTH = [
+  0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+] as const
+
 // Time Flow System (V2)
 export type TimeFlowMode = 'paused' | 'normal' | 'fast' | 'faster'
 export type TimeFlowSpeed = 1 | 2 | 4
 
 export interface TimeFlowSettings {
-  monthDurationMs: number  // Base ms per month at 1x speed (default: 3000)
+  dayDurationMs: number  // Base ms per day at 1x speed (default: 100ms for fast ticking)
   autoPauseOnImportant: boolean
   quietPeriodAutoSkip: boolean
 }
@@ -46,7 +51,7 @@ export interface DeadlineTracker {
   formId?: FormType
   deadline: GameDate
   severity: 'minor' | 'major' | 'critical'
-  warningThresholds: number[]  // Months before deadline to warn
+  warningThresholds: number[]  // Days before deadline to warn
   description: string
   isTriggered: boolean
 }
@@ -700,7 +705,7 @@ export interface GameEndState {
 
 export interface GameStatistics {
   // Time
-  totalMonthsPlayed: number
+  totalDaysPlayed: number
   yearsInUS: number
 
   // Status
@@ -749,9 +754,13 @@ export interface SaveData {
   playTimeMinutes: number
 
   // Time
+  currentDay: number
   currentMonth: number
   currentYear: number
-  totalMonthsElapsed: number
+  startDay: number
+  startMonth: number
+  startYear: number
+  totalDaysElapsed: number
 
   // Character state
   characterState: {

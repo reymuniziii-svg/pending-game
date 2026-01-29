@@ -6,14 +6,14 @@ import { RotateCcw, Share2, ExternalLink } from 'lucide-react'
 
 export function EndingScreen() {
   const { selectedCharacterId, resetGame, setScreen, playTimeMinutes } = useGameStore()
-  const { currentYear, totalMonthsElapsed } = useTimeStore()
+  const { currentYear, totalDaysElapsed } = useTimeStore()
   const { status, statusHistory, profile } = useCharacterStore()
   const { totalImmigrationSpending, totalRemittancesSent, peakBalance, lowestBalance } = useFinanceStore()
   const { approvedApplications, deniedApplications } = useFormStore()
 
   const currentProfile = PROFILES.find(p => p.id === selectedCharacterId) || profile
 
-  const yearsInUS = Math.floor(totalMonthsElapsed / 12) + ((currentProfile?.initialAge || 0) - (currentProfile?.arrivalAge || 0))
+  const yearsInUS = Math.floor(totalDaysElapsed / 365) + ((currentProfile?.initialAge || 0) - (currentProfile?.arrivalAge || 0))
 
   const handlePlayAgain = () => {
     resetGame()

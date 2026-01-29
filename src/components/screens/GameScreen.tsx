@@ -64,10 +64,11 @@ export function GameScreen() {
   } = useGameStore()
 
   const {
+    currentDay,
     currentMonth,
     currentYear,
     getFormattedDate,
-    totalMonthsElapsed,
+    totalDaysElapsed,
     flowMode,
     deadlinePressure,
   } = useTimeStore()
@@ -81,11 +82,11 @@ export function GameScreen() {
   const [showMonthSummary, setShowMonthSummary] = useState(false)
 
   // V2: Time flow system
-  const { isPaused: isTimePaused, pause, resume, skipMonth } = useTimeFlow({
+  const { isPaused: isTimePaused, pause, resume, skipDay } = useTimeFlow({
     enabled: !isInOpeningSequence && !isGamePaused,
-    onMonthAdvance: useCallback(() => {
+    onDayAdvance: useCallback(() => {
       setShowMonthSummary(true)
-      setTimeout(() => setShowMonthSummary(false), 800)
+      setTimeout(() => setShowMonthSummary(false), 300)
     }, []),
   })
 
@@ -193,7 +194,7 @@ export function GameScreen() {
             <div className="h-4 w-px bg-border" />
             <Badge variant="secondary" className="text-xs flex items-center gap-1">
               <CalendarDays className="h-3 w-3" />
-              Year {Math.floor(totalMonthsElapsed / 12) + 1}
+              Year {Math.floor(totalDaysElapsed / 365) + 1}
             </Badge>
           </div>
 
@@ -225,7 +226,7 @@ export function GameScreen() {
                 {currentProfile?.name}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Age {(currentProfile?.initialAge || 0) + Math.floor(totalMonthsElapsed / 12)}
+                Age {(currentProfile?.initialAge || 0) + Math.floor(totalDaysElapsed / 365)}
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -403,9 +404,9 @@ export function GameScreen() {
                           <Play className="mr-2 h-4 w-4" />
                           Start Time
                         </Button>
-                        <Button variant="outline" onClick={() => skipMonth()}>
+                        <Button variant="outline" onClick={() => skipDay()}>
                           <ChevronRight className="mr-2 h-4 w-4" />
-                          Skip Month
+                          Next Day
                         </Button>
                       </div>
                     )}
@@ -479,8 +480,8 @@ export function GameScreen() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Months in US</span>
-                <span>{totalMonthsElapsed + ((currentProfile?.initialAge || 0) - (currentProfile?.arrivalAge || 0)) * 12}</span>
+                <span className="text-muted-foreground">Days in US</span>
+                <span>{totalDaysElapsed + ((currentProfile?.initialAge || 0) - (currentProfile?.arrivalAge || 0)) * 365}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Immigration Spent</span>

@@ -6,11 +6,12 @@ import type {
   TimeFlowSettings,
   DeadlineTracker
 } from '@/types'
+import { DAYS_IN_MONTH, MONTH_NAMES } from '@/types'
 
 // V3: Advance mode determines time control style
 export type AdvanceMode = 'auto' | 'manual'
 
-// V3: Transition state for ceremonial month changes
+// V3: Transition state for ceremonial day changes
 export type TransitionState = 'idle' | 'teasing' | 'transitioning' | 'revealing'
 
 // V3: Teaser messages for anticipation building
@@ -18,8 +19,8 @@ const TEASER_MESSAGES = [
   'Something stirs...',
   'The calendar turns...',
   'Time moves forward...',
-  'A new month awaits...',
-  'The days pass by...',
+  'A new day awaits...',
+  'The hours pass by...',
   'Change is coming...',
 ]
 
@@ -27,16 +28,28 @@ const FORESHADOWING_MESSAGES = {
   deadline: 'A deadline approaches...',
   event: 'Something is about to happen...',
   quiet: 'Life continues quietly...',
-  important: 'This month feels significant...',
+  important: 'This day feels significant...',
+}
+
+// Helper to get days in a month (handles leap years)
+function getDaysInMonth(month: number, year: number): number {
+  if (month === 2 && isLeapYear(year)) return 29
+  return DAYS_IN_MONTH[month]
+}
+
+function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0)
 }
 
 interface TimeState {
   // Current time
+  currentDay: number    // 1-31
   currentMonth: number  // 1-12
   currentYear: number
-  totalMonthsElapsed: number
+  totalDaysElapsed: number
 
   // Game start reference
+  startDay: number
   startMonth: number
   startYear: number
 
@@ -47,7 +60,7 @@ interface TimeState {
 
   // Quiet period handling
   isQuietPeriod: boolean
-  quietPeriodMonths: number  // How many months to skip
+  quietPeriodDays: number  // How many days to skip
   quietPeriodStart?: GameDate
 
   // Deadline pressure (0-100)
@@ -64,15 +77,21 @@ interface TimeState {
   upcomingEventHint: string | null  // Foreshadowing for events
   canAdvance: boolean  // Whether player can tap to advance
 
+  // Track days since last event for micro-moments
+  daysSinceLastEvent: number
+
   // Actions - Basic
-  initializeTime: (month: number, year: number) => void
-  advanceMonth: () => void
-  advanceMonths: (count: number) => void
+  initializeTime: (day: number, month: number, year: number) => void
+  advanceDay: () => void
+  advanceDays: (count: number) => void
   getCurrentDate: () => GameDate
   getMonthName: () => string
   getFormattedDate: () => string
+  getShortDate: () => string
+  isMonthEnd: () => boolean
   isYearEnd: () => boolean
   getYearsElapsed: () => number
+  getDaysInCurrentMonth: () => number
   reset: () => void
 
   // Actions - V2: Flow Control
@@ -84,22 +103,26 @@ interface TimeState {
   updateSettings: (settings: Partial<TimeFlowSettings>) => void
 
   // Actions - Quiet Periods
-  startQuietPeriod: (months: number) => void
+  startQuietPeriod: (days: number) => void
   endQuietPeriod: () => void
 
   // Actions - Deadline Tracking
   addDeadline: (deadline: DeadlineTracker) => void
   removeDeadline: (id: string) => void
   updateDeadlinePressure: () => void
-  getMonthsUntilDeadline: (deadline: DeadlineTracker) => number
+  getDaysUntilDeadline: (deadline: DeadlineTracker) => number
 
   // Internal: Timer management
   setAutoAdvanceTimer: (id: number | null) => void
 
+  // Event tracking
+  resetDaysSinceEvent: () => void
+  incrementDaysSinceEvent: () => void
+
   // === V3: Tap-to-Advance Actions ===
   setAdvanceMode: (mode: AdvanceMode) => void
-  startTransition: () => void  // Begin ceremonial month transition
-  completeTransition: () => void  // Finish transition, reveal new month
+  startTransition: () => void  // Begin ceremonial day transition
+  completeTransition: () => void  // Finish transition, reveal new day
   cancelTransition: () => void  // Cancel if interrupted
   setUpcomingEventHint: (hint: string | null) => void
   setCanAdvance: (can: boolean) => void
@@ -108,15 +131,17 @@ interface TimeState {
 }
 
 const defaultSettings: TimeFlowSettings = {
-  monthDurationMs: 3000,  // 3 seconds per month at 1x
+  dayDurationMs: 100,  // 100ms per day at 1x for fast ticking
   autoPauseOnImportant: true,
   quietPeriodAutoSkip: true,
 }
 
 const initialState = {
+  currentDay: 1,
   currentMonth: 1,
   currentYear: 2024,
-  totalMonthsElapsed: 0,
+  totalDaysElapsed: 0,
+  startDay: 1,
   startMonth: 1,
   startYear: 2024,
 
@@ -125,7 +150,7 @@ const initialState = {
   flowSpeed: 1 as TimeFlowSpeed,
   settings: defaultSettings,
   isQuietPeriod: false,
-  quietPeriodMonths: 0,
+  quietPeriodDays: 0,
   quietPeriodStart: undefined,
   deadlinePressure: 0,
   activeDeadlines: [] as DeadlineTracker[],
@@ -137,86 +162,120 @@ const initialState = {
   teaserMessage: null as string | null,
   upcomingEventHint: null as string | null,
   canAdvance: true,
+
+  // Event tracking
+  daysSinceLastEvent: 0,
 }
 
 export const useTimeStore = create<TimeState>((set, get) => ({
   ...initialState,
 
-  initializeTime: (month, year) => set({
+  initializeTime: (day, month, year) => set({
+    currentDay: day,
     currentMonth: month,
     currentYear: year,
+    startDay: day,
     startMonth: month,
     startYear: year,
-    totalMonthsElapsed: 0,
+    totalDaysElapsed: 0,
     flowMode: 'paused',
     isQuietPeriod: false,
-    quietPeriodMonths: 0,
+    quietPeriodDays: 0,
     deadlinePressure: 0,
     activeDeadlines: [],
+    daysSinceLastEvent: 0,
   }),
 
-  advanceMonth: () => set((state) => {
-    let newMonth = state.currentMonth + 1
+  advanceDay: () => set((state) => {
+    let newDay = state.currentDay + 1
+    let newMonth = state.currentMonth
     let newYear = state.currentYear
 
-    if (newMonth > 12) {
-      newMonth = 1
-      newYear += 1
-    }
+    const daysInMonth = getDaysInMonth(state.currentMonth, state.currentYear)
 
-    return {
-      currentMonth: newMonth,
-      currentYear: newYear,
-      totalMonthsElapsed: state.totalMonthsElapsed + 1,
-    }
-  }),
-
-  advanceMonths: (count) => set((state) => {
-    let month = state.currentMonth
-    let year = state.currentYear
-
-    for (let i = 0; i < count; i++) {
-      month += 1
-      if (month > 12) {
-        month = 1
-        year += 1
+    if (newDay > daysInMonth) {
+      newDay = 1
+      newMonth += 1
+      if (newMonth > 12) {
+        newMonth = 1
+        newYear += 1
       }
     }
 
     return {
+      currentDay: newDay,
+      currentMonth: newMonth,
+      currentYear: newYear,
+      totalDaysElapsed: state.totalDaysElapsed + 1,
+      daysSinceLastEvent: state.daysSinceLastEvent + 1,
+    }
+  }),
+
+  advanceDays: (count) => set((state) => {
+    let day = state.currentDay
+    let month = state.currentMonth
+    let year = state.currentYear
+
+    for (let i = 0; i < count; i++) {
+      day += 1
+      const daysInMonth = getDaysInMonth(month, year)
+      if (day > daysInMonth) {
+        day = 1
+        month += 1
+        if (month > 12) {
+          month = 1
+          year += 1
+        }
+      }
+    }
+
+    return {
+      currentDay: day,
       currentMonth: month,
       currentYear: year,
-      totalMonthsElapsed: state.totalMonthsElapsed + count,
+      totalDaysElapsed: state.totalDaysElapsed + count,
+      daysSinceLastEvent: state.daysSinceLastEvent + count,
     }
   }),
 
   getCurrentDate: () => ({
+    day: get().currentDay,
     month: get().currentMonth,
     year: get().currentYear,
   }),
 
   getMonthName: () => {
-    const months = [
-      '', 'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ]
-    return months[get().currentMonth]
+    return MONTH_NAMES[get().currentMonth]
   },
 
   getFormattedDate: () => {
     const state = get()
-    const months = [
-      '', 'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ]
-    return `${months[state.currentMonth]} ${state.currentYear}`
+    return `${MONTH_NAMES[state.currentMonth]} ${state.currentDay}, ${state.currentYear}`
   },
 
-  isYearEnd: () => get().currentMonth === 12,
+  getShortDate: () => {
+    const state = get()
+    return `${state.currentMonth}/${state.currentDay}/${state.currentYear}`
+  },
+
+  isMonthEnd: () => {
+    const state = get()
+    return state.currentDay === getDaysInMonth(state.currentMonth, state.currentYear)
+  },
+
+  isYearEnd: () => {
+    const state = get()
+    return state.currentMonth === 12 && state.currentDay === 31
+  },
 
   getYearsElapsed: () => {
     const state = get()
     return state.currentYear - state.startYear
+  },
+
+  getDaysInCurrentMonth: () => {
+    const state = get()
+    return getDaysInMonth(state.currentMonth, state.currentYear)
   },
 
   reset: () => set(initialState),
@@ -250,15 +309,15 @@ export const useTimeStore = create<TimeState>((set, get) => ({
 
   // === Quiet Periods ===
 
-  startQuietPeriod: (months) => set((state) => ({
+  startQuietPeriod: (days) => set((state) => ({
     isQuietPeriod: true,
-    quietPeriodMonths: months,
-    quietPeriodStart: { month: state.currentMonth, year: state.currentYear },
+    quietPeriodDays: days,
+    quietPeriodStart: { day: state.currentDay, month: state.currentMonth, year: state.currentYear },
   })),
 
   endQuietPeriod: () => set({
     isQuietPeriod: false,
-    quietPeriodMonths: 0,
+    quietPeriodDays: 0,
     quietPeriodStart: undefined,
   }),
 
@@ -272,10 +331,11 @@ export const useTimeStore = create<TimeState>((set, get) => ({
     activeDeadlines: state.activeDeadlines.filter(d => d.id !== id)
   })),
 
-  getMonthsUntilDeadline: (deadline) => {
+  getDaysUntilDeadline: (deadline) => {
     const state = get()
-    const currentTotal = state.currentYear * 12 + state.currentMonth
-    const deadlineTotal = deadline.deadline.year * 12 + deadline.deadline.month
+    // Convert both dates to total days for comparison
+    const currentTotal = dateToDays(state.currentYear, state.currentMonth, state.currentDay)
+    const deadlineTotal = dateToDays(deadline.deadline.year, deadline.deadline.month, deadline.deadline.day || 1)
     return deadlineTotal - currentTotal
   },
 
@@ -288,19 +348,19 @@ export const useTimeStore = create<TimeState>((set, get) => ({
     let maxPressure = 0
 
     for (const deadline of state.activeDeadlines) {
-      const monthsUntil = get().getMonthsUntilDeadline(deadline)
+      const daysUntil = get().getDaysUntilDeadline(deadline)
 
       let pressure = 0
-      if (monthsUntil <= 0) {
+      if (daysUntil <= 0) {
         pressure = 100  // Past due
-      } else if (monthsUntil <= 1) {
-        pressure = 90  // Final month
-      } else if (monthsUntil <= 3) {
-        pressure = 70  // 1-3 months
-      } else if (monthsUntil <= 6) {
-        pressure = 40  // 3-6 months
+      } else if (daysUntil <= 7) {
+        pressure = 90  // Final week
+      } else if (daysUntil <= 30) {
+        pressure = 70  // Final month
+      } else if (daysUntil <= 90) {
+        pressure = 40  // 1-3 months
       } else {
-        pressure = 10  // 6+ months
+        pressure = 10  // 3+ months
       }
 
       // Adjust by severity
@@ -318,11 +378,19 @@ export const useTimeStore = create<TimeState>((set, get) => ({
 
   setAutoAdvanceTimer: (id) => set({ autoAdvanceTimerId: id }),
 
+  // === Event Tracking ===
+
+  resetDaysSinceEvent: () => set({ daysSinceLastEvent: 0 }),
+
+  incrementDaysSinceEvent: () => set((state) => ({
+    daysSinceLastEvent: state.daysSinceLastEvent + 1
+  })),
+
   // === V3: Tap-to-Advance Implementation ===
 
   setAdvanceMode: (mode) => set({ advanceMode: mode }),
 
-  startTransition: () => set((state) => {
+  startTransition: () => set(() => {
     // Select a random teaser message
     const teaser = TEASER_MESSAGES[Math.floor(Math.random() * TEASER_MESSAGES.length)]
 
@@ -354,11 +422,24 @@ export const useTimeStore = create<TimeState>((set, get) => ({
   getForeshadowingMessage: (type) => FORESHADOWING_MESSAGES[type],
 }))
 
-// Helper function to calculate effective month duration
-export function getEffectiveMonthDuration(state: Pick<TimeState, 'settings' | 'flowSpeed' | 'deadlinePressure'>): number {
+// Helper function to convert date to total days since epoch for comparison
+function dateToDays(year: number, month: number, day: number): number {
+  let totalDays = 0
+  for (let y = 2000; y < year; y++) {
+    totalDays += isLeapYear(y) ? 366 : 365
+  }
+  for (let m = 1; m < month; m++) {
+    totalDays += getDaysInMonth(m, year)
+  }
+  totalDays += day
+  return totalDays
+}
+
+// Helper function to calculate effective day duration
+export function getEffectiveDayDuration(state: Pick<TimeState, 'settings' | 'flowSpeed' | 'deadlinePressure'>): number {
   const { settings, flowSpeed, deadlinePressure } = state
 
-  let duration = settings.monthDurationMs / flowSpeed
+  let duration = settings.dayDurationMs / flowSpeed
 
   // Slow down when deadline pressure is high
   if (deadlinePressure > 50) {
@@ -370,3 +451,6 @@ export function getEffectiveMonthDuration(state: Pick<TimeState, 'settings' | 'f
 
   return duration
 }
+
+// Export getDaysInMonth for use elsewhere
+export { getDaysInMonth }

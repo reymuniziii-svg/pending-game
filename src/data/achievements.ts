@@ -30,7 +30,7 @@ export interface AchievementCondition {
 
 // State passed to achievement check functions
 export interface AchievementCheckState {
-  totalMonthsElapsed: number
+  totalDaysElapsed: number
   currentStatus: string
   eventsCompleted: string[]
   choicesMade: Record<string, string>
@@ -72,7 +72,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'journey',
     rarity: 'common',
     icon: 'Calendar',
-    hint: 'Play for 12 months',
+    hint: 'Play for 1 year (365 days)',
   },
   {
     id: 'half-decade',
@@ -81,7 +81,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'journey',
     rarity: 'uncommon',
     icon: 'Clock',
-    hint: 'Play for 60 months',
+    hint: 'Play for 5 years',
   },
   {
     id: 'the-long-wait',
@@ -90,7 +90,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'journey',
     rarity: 'rare',
     icon: 'Hourglass',
-    hint: 'Play for 120 months',
+    hint: 'Play for 10 years',
   },
   {
     id: 'paper-trail',

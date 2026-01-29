@@ -49,3 +49,6 @@ export { GlossaryText, GlossaryParagraph, GlossaryDescription, NarrativeText, ha
 // V3: Achievement Components
 export { AchievementNotification, AchievementBadge } from './AchievementNotification'
 export { AchievementDisplay, AchievementProgress, AchievementSummary } from './AchievementDisplay'
+
+// V4: Scene Imagery Components
+export { SceneImage, CharacterPortrait, EventScene } from './SceneImage'

@@ -58,9 +58,13 @@ function serializeGameState(): SaveData {
     characterId: character.profileId || '',
     playTimeMinutes: game.playTimeMinutes,
 
+    currentDay: time.currentDay,
     currentMonth: time.currentMonth,
     currentYear: time.currentYear,
-    totalMonthsElapsed: time.totalMonthsElapsed,
+    startDay: time.startDay,
+    startMonth: time.startMonth,
+    startYear: time.startYear,
+    totalDaysElapsed: time.totalDaysElapsed,
 
     characterState: {
       status: character.status!,
@@ -94,7 +98,7 @@ function serializeGameState(): SaveData {
     relationships: relationships.relationships,
 
     statistics: {
-      totalMonthsPlayed: time.totalMonthsElapsed,
+      totalDaysPlayed: time.totalDaysElapsed,
       yearsInUS: time.getYearsElapsed(),
       finalStatus: character.status?.type || 'undocumented',
       statusChanges: character.statusHistory.length,
@@ -138,9 +142,13 @@ function applySaveToStores(save: SaveData): void {
 
   // Apply time
   useTimeStore.setState({
+    currentDay: save.currentDay,
     currentMonth: save.currentMonth,
     currentYear: save.currentYear,
-    totalMonthsElapsed: save.totalMonthsElapsed,
+    startDay: save.startDay,
+    startMonth: save.startMonth,
+    startYear: save.startYear,
+    totalDaysElapsed: save.totalDaysElapsed,
   })
 
   // Apply character

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGameStore, useCharacterStore, useTimeStore, useFinanceStore, useRelationshipStore } from '@/stores'
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Badge } from '@/components/ui'
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, CharacterPortrait } from '@/components/ui'
 import { ArrowLeft, Briefcase, MapPin, Clock } from 'lucide-react'
 import type { CharacterProfile } from '@/types'
 
@@ -172,10 +172,10 @@ export function CharacterSelect() {
     if (!selectedProfile) return
 
     // Initialize time
-    initializeTime(1, selectedProfile.gameStartYear)
+    initializeTime(1, 1, selectedProfile.gameStartYear)
 
     // Initialize character
-    initializeCharacter(selectedProfile, { month: 1, year: selectedProfile.gameStartYear })
+    initializeCharacter(selectedProfile, { day: 1, month: 1, year: selectedProfile.gameStartYear })
 
     // Initialize finance
     initializeFinance(
@@ -232,14 +232,19 @@ export function CharacterSelect() {
               onClick={() => handleSelectProfile(profile)}
             >
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-xl">{profile.name}</CardTitle>
-                    <CardDescription className="mt-1">{profile.tagline}</CardDescription>
+                <div className="flex items-start gap-4">
+                  <CharacterPortrait characterId={profile.id} size="md" />
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-xl">{profile.name}</CardTitle>
+                        <CardDescription className="mt-1">{profile.tagline}</CardDescription>
+                      </div>
+                      <Badge variant={getDifficultyColor(profile.difficulty) as any}>
+                        {profile.difficulty}
+                      </Badge>
+                    </div>
                   </div>
-                  <Badge variant={getDifficultyColor(profile.difficulty) as any}>
-                    {profile.difficulty}
-                  </Badge>
                 </div>
               </CardHeader>
               <CardContent>

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import type { ScreenType, GameStatistics } from '@/types'
+import type { ScreenType } from '@/types'
 import { generateId } from '@/lib/utils'
+import { createSimulationSeed, useSimulationStore } from './useSimulationStore'
 
 interface GameState {
   // Meta
@@ -70,15 +71,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   })),
 
   startNewGame: (characterId) => set({
-    gameId: generateId(),
-    startedAt: new Date(),
-    playTimeMinutes: 0,
-    selectedCharacterId: characterId,
-    currentScreen: 'opening',
-    isInOpeningSequence: true,
-    openingBeatIndex: 0,
-    isPaused: false,
-    isProcessingEvent: false,
+    ...(() => {
+      useSimulationStore.getState().initialize(createSimulationSeed())
+      return {
+        gameId: generateId(),
+        startedAt: new Date(),
+        playTimeMinutes: 0,
+        selectedCharacterId: characterId,
+        currentScreen: 'opening',
+        isInOpeningSequence: true,
+        openingBeatIndex: 0,
+        isPaused: false,
+        isProcessingEvent: false,
+      }
+    })(),
   }),
 
   acknowledgeContentWarning: () => set({
@@ -103,8 +109,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
 
   resetGame: () => set({
-    ...initialState,
-    hasSeenContentWarning: get().hasSeenContentWarning, // Preserve this
+    ...(() => {
+      useSimulationStore.getState().reset()
+      return {
+        ...initialState,
+        hasSeenContentWarning: get().hasSeenContentWarning, // Preserve this
+      }
+    })(),
   }),
 
   updatePlayTime: (minutes) => set((state) => ({

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import Lottie, { type LottieRefCurrentProps } from 'lottie-react'
 import { cn } from '@/lib/utils'
 
@@ -65,6 +65,7 @@ function useAnimationData(type: AnimationType) {
 
     // First check inline animations
     if (inlineAnimations[type]) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setData(inlineAnimations[type] as object)
       return
     }

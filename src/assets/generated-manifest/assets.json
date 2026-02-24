@@ -1,0 +1,16 @@
+[
+  {
+    "id": "hero-courthouse-001",
+    "source": "generated",
+    "provider": "commercial-safe-provider",
+    "prompt": "Documentary cinematic exterior of an immigration courthouse at dawn, realistic lighting, high detail",
+    "model": "model-name",
+    "seed": "123456",
+    "generatedAt": "2026-02-24T00:00:00Z",
+    "rights": "commercial-safe",
+    "alt": {
+      "en": "Courthouse exterior at dawn",
+      "es": "Exterior de tribunal al amanecer"
+    }
+  }
+]

@@ -6,7 +6,6 @@ import {
   getAchievementById,
   ACHIEVEMENTS,
   CATEGORY_INFO,
-  RARITY_INFO,
   RIBBON_COLORS,
   type Achievement,
   type AchievementCategory,

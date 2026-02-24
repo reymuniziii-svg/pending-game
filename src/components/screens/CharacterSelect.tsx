@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useGameStore, useCharacterStore, useTimeStore, useFinanceStore, useRelationshipStore } from '@/stores'
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CharacterPortrait } from '@/components/ui'
-import { ArrowLeft, Briefcase, MapPin, Clock } from 'lucide-react'
+import { ArrowLeft, Briefcase, MapPin } from 'lucide-react'
 import type { CharacterProfile } from '@/types'
+import { useTranslation } from 'react-i18next'
 
 // Character profiles for V1
 const PROFILES: CharacterProfile[] = [
@@ -156,6 +157,7 @@ const PROFILES: CharacterProfile[] = [
 ]
 
 export function CharacterSelect() {
+  const { t } = useTranslation('ui')
   const { setScreen, startNewGame } = useGameStore()
   const { initializeCharacter } = useCharacterStore()
   const { initializeTime } = useTimeStore()
@@ -197,7 +199,6 @@ export function CharacterSelect() {
     startNewGame(selectedProfile.id)
   }
 
-
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -205,11 +206,11 @@ export function CharacterSelect() {
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" size="sm" onClick={() => setScreen('title')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('characterSelect.back')}
           </Button>
           <div>
-            <h1 className="text-3xl font-serif font-bold">Choose Your Story</h1>
-            <p className="text-muted-foreground">Each path reveals different aspects of the system.</p>
+            <h1 className="text-3xl font-serif font-bold">{t('characterSelect.title')}</h1>
+            <p className="text-muted-foreground">{t('characterSelect.subtitle')}</p>
           </div>
         </div>
 
@@ -266,7 +267,7 @@ export function CharacterSelect() {
               </blockquote>
               <div className="flex gap-4 pt-4">
                 <Button size="lg" onClick={handleStartGame}>
-                  Begin {selectedProfile.name.split(' ')[0]}'s Story
+                  {t('characterSelect.beginStory', { name: selectedProfile.name.split(' ')[0] })}
                 </Button>
               </div>
             </CardContent>

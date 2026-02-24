@@ -261,7 +261,6 @@ export function AchievementBadge({
   className,
   onClick,
 }: AchievementBadgeProps) {
-  const categoryInfo = CATEGORY_INFO[achievement.category]
   const rarityInfo = RARITY_INFO[achievement.rarity]
   const ribbonStyle = achievement.ribbonColor
     ? RIBBON_COLORS[achievement.ribbonColor]

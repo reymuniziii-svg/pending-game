@@ -8,6 +8,16 @@ export type ScreenType =
   | 'game'
   | 'ending'
 
+export type LocaleCode = 'en' | 'es'
+
+export type LocalizedText =
+  | string
+  | {
+      en: string
+      es?: string
+      [locale: string]: string | undefined
+    }
+
 // ============ TIME ============
 
 export interface GameDate {
@@ -347,6 +357,64 @@ export type OutcomeType =
   | 'remove-document'
   | 'end-game'
 
+export interface OutcomePayloadMap {
+  'status-change': {
+    target: ImmigrationStatusType
+    reason?: string
+  }
+  'flag-set': {
+    target: string
+    value: string | number | boolean
+  }
+  'flag-increment': {
+    target: string
+    value?: number
+  }
+  'finance-add': {
+    target: string
+    value: number
+  }
+  'finance-subtract': {
+    target: string
+    value: number
+  }
+  'relationship-change': {
+    target: string
+    value: number
+  }
+  'stat-change': {
+    target: keyof CharacterStats
+    value: number
+  }
+  'trigger-event': {
+    target: string
+  }
+  'queue-event': {
+    target: string
+    delayMonths?: number
+  }
+  'file-application': {
+    target: FormType
+  }
+  'application-decision': {
+    target: string
+    value?: FormOutcomeType
+  }
+  'trigger-trap': {
+    target: string
+  }
+  'add-document': {
+    target: string
+    value?: Document['type']
+  }
+  'remove-document': {
+    target: string
+  }
+  'end-game': {
+    target: string
+  }
+}
+
 export interface EventOutcome {
   type: OutcomeType
   target: string
@@ -357,6 +425,9 @@ export interface EventOutcome {
 
   // For delayed outcomes
   delayMonths?: number
+
+  // Optional data source for legal realism explanations
+  citationIds?: string[]
 }
 
 export interface EventChain {
@@ -527,6 +598,53 @@ export interface PolicyTrap {
   // Recovery possible?
   isRecoverable: boolean
   recoveryPath?: string
+}
+
+// ============ LEGAL CONTENT / POLICY RULES ============
+
+export interface LegalCitation {
+  id: string
+  sourceUrl: string
+  title: string
+  publisher: string
+  retrievedAt: string // ISO datetime
+  effectiveDate: string // ISO date
+  confidence: number // 0-1
+}
+
+export interface PolicyRule {
+  id: string
+  name: string
+  description: string
+  category: 'daca' | 'unlawful-presence' | 'h1b' | 'asylum' | 'ar11' | 'visa-bulletin' | 'general'
+  effectiveDate: string
+  expirationDate?: string
+  conditions: EventCondition[]
+  outcomes: EventOutcome[]
+  citations: LegalCitation[]
+}
+
+export interface ContentBundle {
+  version: string
+  locale: LocaleCode
+  checksum: string
+  effectiveDate: string
+  generatedAt: string
+  events: GameEvent[]
+  forms: Record<FormType, ImmigrationForm>
+  traps: PolicyTrap[]
+  glossary: {
+    terms: Array<{
+      id: string
+      term: string
+      shortDefinition: string
+      fullDefinition: string
+      category: string
+      aliases?: string[]
+    }>
+  }
+  rules: PolicyRule[]
+  citations: LegalCitation[]
 }
 
 // ============ RELATIONSHIPS ============
@@ -742,6 +860,12 @@ export interface GameStatistics {
   childrenBorn: number
 }
 
+export interface SimulationSeedState {
+  seed: string
+  turn: number
+  stream: 'core' | 'events' | 'forms' | 'traps'
+}
+
 // ============ SAVE DATA ============
 
 export interface SaveData {
@@ -800,6 +924,11 @@ export interface SaveData {
 
   // Statistics
   statistics: GameStatistics
+
+  // Content/simulation reproducibility
+  bundleVersion?: string
+  simulationSeed?: string
+  simulationTurn?: number
 
   // Checksum for validation
   checksum: string

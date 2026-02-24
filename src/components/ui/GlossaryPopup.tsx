@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { X, ChevronDown, ChevronUp, AlertTriangle, Info, ExternalLink, BookOpen } from 'lucide-react'
+import { X, ChevronDown, ChevronUp, AlertTriangle, Info, BookOpen } from 'lucide-react'
 import { useGlossaryStore, useActiveTermId, useIsExpanded } from '@/stores'
-import { getTermById, CATEGORY_INFO, type GlossaryTerm } from '@/data/glossary'
+import { getTermById, CATEGORY_INFO } from '@/data/glossary'
 import { cn } from '@/lib/utils'
 import { Button } from './Button'
 

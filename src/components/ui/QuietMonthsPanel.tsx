@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion } from 'motion/react'
 import { Calendar, Coffee, Briefcase, Heart, Sun, Moon, Home, DollarSign } from 'lucide-react'
 import { useTimeStore, useCharacterStore, useFinanceStore } from '@/stores'
 import { cn } from '@/lib/utils'

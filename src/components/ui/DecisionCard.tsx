@@ -6,7 +6,6 @@ import { Card, CardHeader, CardTitle, CardContent } from './Card'
 import {
   Clock,
   DollarSign,
-  Heart,
   AlertTriangle,
   Users,
   Zap,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { cn } from '@/lib/utils'
 
@@ -19,13 +19,10 @@ export function SceneImage({
   overlay = 'none',
   aspectRatio = 'auto',
 }: SceneImageProps) {
-  const [loaded, setLoaded] = useState(false)
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    setLoaded(false)
-    setError(false)
-  }, [src])
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
+  const [errorSrc, setErrorSrc] = useState<string | null>(null)
+  const loaded = loadedSrc === src
+  const error = errorSrc === src
 
   const aspectClasses = {
     'auto': '',
@@ -85,8 +82,14 @@ export function SceneImage({
         )}
         initial={fadeIn ? { opacity: 0 } : false}
         animate={fadeIn ? { opacity: loaded ? 1 : 0 } : false}
-        onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
+        onLoad={() => {
+          setLoadedSrc(src)
+          setErrorSrc(null)
+        }}
+        onError={() => {
+          setErrorSrc(src)
+          setLoadedSrc(null)
+        }}
       />
     </div>
   )

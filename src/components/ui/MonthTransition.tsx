@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Calendar, ChevronRight, Clock, AlertTriangle } from 'lucide-react'
 import { useTimeStore } from '@/stores'
@@ -27,7 +27,6 @@ export function MonthTransition({
   const {
     currentMonth,
     currentYear,
-    transitionState,
     teaserMessage,
     deadlinePressure,
     canAdvance,
@@ -174,14 +173,14 @@ export function MonthTransition({
       </AnimatePresence>
 
       {/* Event Hint / Foreshadowing */}
-      {eventHint && !isAnimating && (
+      {(eventHint || hasUpcomingEvent) && !isAnimating && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex items-center gap-2 text-sm text-warning"
         >
           <AlertTriangle className="w-4 h-4" />
-          <span className="italic">{eventHint}</span>
+          <span className="italic">{eventHint || 'A critical update may arrive soon.'}</span>
         </motion.div>
       )}
 

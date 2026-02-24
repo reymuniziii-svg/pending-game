@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState, useEffect, useRef } from 'react'
+import { type ReactNode, useMemo, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { SceneType } from '@/types'
 import { cn } from '@/lib/utils'
@@ -116,18 +116,6 @@ export function SceneWrapper({
   enableParticles = false,
 }: SceneWrapperProps) {
   const config = sceneConfigs[type] || sceneConfigs.neutral
-  const prevTypeRef = useRef(type)
-  const [isTransitioning, setIsTransitioning] = useState(false)
-
-  // Track scene changes for transitions
-  useEffect(() => {
-    if (prevTypeRef.current !== type && enableTransition) {
-      setIsTransitioning(true)
-      const timer = setTimeout(() => setIsTransitioning(false), 500)
-      prevTypeRef.current = type
-      return () => clearTimeout(timer)
-    }
-  }, [type, enableTransition])
 
   const vignetteStyle = useMemo(() => {
     if (!showVignette) return {}
@@ -152,19 +140,6 @@ export function SceneWrapper({
       transition={{ duration: 0.5, ease: 'easeInOut' }}
       key={type}
     >
-      {/* V3: Scene transition overlay */}
-      <AnimatePresence>
-        {isTransitioning && (
-          <motion.div
-            className="absolute inset-0 z-40 pointer-events-none bg-background/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          />
-        )}
-      </AnimatePresence>
-
       {/* V3: Ambient particles */}
       {enableParticles && config.particles !== 'none' && (
         <AmbientParticles type={config.particles} color={config.particleColor} />
@@ -201,9 +176,8 @@ function AmbientParticles({
   }>>([])
 
   useEffect(() => {
-    // Generate particles based on type
     const count = type === 'papers' ? 5 : type === 'warmth' ? 8 : type === 'clinical' ? 3 : 6
-    const newParticles = Array.from({ length: count }, (_, i) => ({
+    const nextParticles = Array.from({ length: count }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -211,7 +185,8 @@ function AmbientParticles({
       delay: Math.random() * 5,
       duration: 8 + Math.random() * 12,
     }))
-    setParticles(newParticles)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setParticles(nextParticles)
   }, [type])
 
   if (type === 'none') return null
@@ -249,6 +224,7 @@ function AmbientParticles({
 }
 
 // Hook to determine scene type from event context
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSceneType(
   sceneType?: SceneType,
   eventTags?: string[]

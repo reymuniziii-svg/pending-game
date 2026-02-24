@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   useEventStore,
   useCharacterStore,
@@ -7,97 +7,130 @@ import {
   useFormStore,
   useRelationshipStore,
   useGameStore,
+  useSimulationStore,
 } from '@/stores'
 import type {
   GameEvent,
   EventCondition,
   EventOutcome,
   GameDate,
+  EventChoice,
   ImmigrationStatusType,
+  FormType,
 } from '@/types'
-import { weightedRandom, addMonths } from '@/lib/utils'
+import { addMonths } from '@/lib/utils'
+import {
+  evaluateCondition as evaluateConditionFromEngine,
+  evaluateConditions,
+  executeOutcome,
+  executeOutcomes,
+  resolveNextEvent,
+  isWithinTimingWindow,
+  processMonthlyFormLifecycle,
+  processPolicyTraps,
+  evaluateLegalRuleChecks,
+  isStatusTransitionAllowed,
+  buildNextStatus,
+  getChainById,
+  getNextChainEventId,
+} from '@/engine'
 
 // Import events data
-import { EVENTS } from '@/data/events'
+import { EVENTS, EVENT_CHAINS } from '@/data/events'
 
 export function useEventEngine() {
-  const { queueEvent, setCurrentEvent, clearCurrentEvent, hasCompletedEvent, completeEvent, getScheduledEventsForDate } = useEventStore()
-  const { status, stats, flags, getFlag, setFlag, modifyStat, profile } = useCharacterStore()
-  const { bankBalance, canAfford } = useFinanceStore()
-  const { currentMonth, currentYear, getCurrentDate, totalDaysElapsed } = useTimeStore()
-  const { getRelationship } = useRelationshipStore()
+  const {
+    queueEvent,
+    setCurrentEvent,
+    clearCurrentEvent,
+    hasCompletedEvent,
+    completeEvent,
+    getScheduledEventsForDate,
+    eventQueue,
+    showOutcome,
+  } = useEventStore()
+
+  const {
+    status,
+    stats,
+    flags,
+    getFlag,
+    setFlag,
+    modifyStat,
+    updateStatus,
+    addDocument,
+    removeDocument,
+  } = useCharacterStore()
+
+  const { bankBalance, canAfford, addIncome, addExpense } = useFinanceStore()
+
+  const {
+    totalDaysElapsed,
+    getCurrentDate,
+    getDaysUntilDeadline,
+    activeDeadlines,
+  } = useTimeStore()
+
+  const { processApplicationDecision } = useFormStore()
+  const { relationships, modifyRelationship } = useRelationshipStore()
   const { selectedCharacterId } = useGameStore()
+  const { nextRandom } = useSimulationStore()
 
-  // Evaluate a single condition
+  const totalMonthsElapsed = useMemo(() => Math.floor(totalDaysElapsed / 30), [totalDaysElapsed])
+
+  const relationshipIndex = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const relationship of relationships) {
+      map[relationship.id] = relationship.level
+    }
+    return map
+  }, [relationships])
+
+  const buildConditionContext = useCallback((date: GameDate) => ({
+    statusType: status?.type,
+    flags: {
+      ...flags,
+      unlawfulPresenceDays: status?.unlawfulPresenceDays,
+    },
+    bankBalance,
+    relationships: relationshipIndex,
+    stats,
+    date,
+    characterId: selectedCharacterId,
+  }), [status?.type, status?.unlawfulPresenceDays, flags, bankBalance, relationshipIndex, stats, selectedCharacterId])
+
+  const evaluateSingleCondition = useCallback((condition: EventCondition, date: GameDate): boolean => {
+    return evaluateConditionFromEngine(condition, buildConditionContext(date))
+  }, [buildConditionContext])
+
   const evaluateCondition = useCallback((condition: EventCondition): boolean => {
-    let value: any
+    return evaluateSingleCondition(condition, getCurrentDate())
+  }, [evaluateSingleCondition, getCurrentDate])
 
-    switch (condition.type) {
-      case 'status':
-        value = status?.type
-        break
-      case 'flag':
-        value = getFlag(condition.target)
-        break
-      case 'finance':
-        if (condition.target === 'balance') value = bankBalance
-        else value = 0
-        break
-      case 'relationship':
-        const rel = getRelationship(condition.target)
-        value = rel?.level ?? 0
-        break
-      case 'stat':
-        value = stats[condition.target as keyof typeof stats] ?? 0
-        break
-      case 'date':
-        if (condition.target === 'month') value = currentMonth
-        else if (condition.target === 'year') value = currentYear
-        else value = 0
-        break
-      case 'character':
-        value = selectedCharacterId
-        break
-      default:
-        value = undefined
-    }
+  const evaluateConditionsList = useCallback((conditions: EventCondition[], date = getCurrentDate()): boolean => {
+    return evaluateConditions(conditions, buildConditionContext(date))
+  }, [buildConditionContext, getCurrentDate])
 
-    switch (condition.operator) {
-      case '==':
-        return value === condition.value
-      case '!=':
-        return value !== condition.value
-      case '>':
-        return value > condition.value
-      case '<':
-        return value < condition.value
-      case '>=':
-        return value >= condition.value
-      case '<=':
-        return value <= condition.value
-      case 'in':
-        return Array.isArray(condition.value) && condition.value.includes(value)
-      case 'not-in':
-        return Array.isArray(condition.value) && !condition.value.includes(value)
-      case 'exists':
-        return value !== undefined && value !== null
-      case 'not-exists':
-        return value === undefined || value === null
-      default:
-        return false
-    }
-  }, [status, getFlag, bankBalance, getRelationship, stats, currentMonth, currentYear, selectedCharacterId])
-
-  // Evaluate all conditions for an event
-  const evaluateConditions = useCallback((conditions: EventCondition[]): boolean => {
-    return conditions.every(evaluateCondition)
-  }, [evaluateCondition])
-
-  // Check if an event is eligible to trigger
-  const isEventEligible = useCallback((event: GameEvent): boolean => {
+  const isEventEligible = useCallback((event: GameEvent, date = getCurrentDate()): boolean => {
     // Check if already completed (and not repeatable)
     if (!event.isRepeatable && hasCompletedEvent(event.id)) {
       return false
+    }
+
+    // Check random timing windows.
+    if (!isWithinTimingWindow(event, totalMonthsElapsed)) {
+      return false
+    }
+
+    // Check timing constraints for random events with day-level precision.
+    if (event.timing.type === 'random') {
+      const timing = event.timing
+      if (timing.earliestMonth !== undefined && totalDaysElapsed < timing.earliestMonth * 30) {
+        return false
+      }
+      if (timing.latestMonth !== undefined && totalDaysElapsed > timing.latestMonth * 30) {
+        return false
+      }
     }
 
     // Check character restrictions
@@ -122,144 +155,284 @@ export function useEventEngine() {
 
     // Check conditions
     if (event.conditions && event.conditions.length > 0) {
-      if (!evaluateConditions(event.conditions)) {
+      if (!evaluateConditionsList(event.conditions, date)) {
         return false
       }
     }
 
-    // Check timing constraints for random events (convert months to days)
-    if (event.timing.type === 'random') {
-      const timing = event.timing
-      if (timing.earliestMonth !== undefined) {
-        const earliestDays = timing.earliestMonth * 30
-        if (totalDaysElapsed < earliestDays) {
+    return true
+  }, [
+    hasCompletedEvent,
+    totalMonthsElapsed,
+    totalDaysElapsed,
+    selectedCharacterId,
+    status,
+    evaluateConditionsList,
+    getCurrentDate,
+  ])
+
+  const getEligibleEvents = useCallback((): GameEvent[] => {
+    const date = getCurrentDate()
+    return EVENTS.filter((event) => isEventEligible(event, date))
+  }, [getCurrentDate, isEventEligible])
+
+  const transitionStatus = useCallback((toStatus: ImmigrationStatusType, reason: string, date: GameDate): boolean => {
+    if (!status) {
+      return false
+    }
+
+    const allowed = isStatusTransitionAllowed(status.type, toStatus, status.validTransitions)
+    if (!allowed) {
+      setFlag('invalid_status_transition_attempt', `${status.type}->${toStatus}`)
+      return false
+    }
+
+    const nextStatus = buildNextStatus(status, toStatus)
+    updateStatus(nextStatus, reason, date)
+    return true
+  }, [status, setFlag, updateStatus])
+
+  const executeSingleOutcome = useCallback((outcome: EventOutcome, date: GameDate): boolean => {
+    return executeOutcome(outcome, date, {
+      getFlag,
+      setFlag,
+      modifyStat: (key, delta) => modifyStat(key, delta),
+      queueEvent,
+      queueScheduledEvent: useEventStore.getState().queueScheduledEvent,
+      addIncome,
+      addExpense: (amount, description, dateValue) => addExpense(amount, description, 'other', dateValue),
+      changeRelationship: (id, delta, reasonText, atDate) => modifyRelationship(id, delta, reasonText, atDate),
+      endGame: () => useGameStore.getState().setScreen('ending'),
+      transitionStatus,
+      fileApplication: (formId, atDate) => {
+        try {
+          useFormStore.getState().fileApplication(formId as FormType, atDate, () => nextRandom('forms'))
+          return true
+        } catch {
           return false
         }
+      },
+      applyApplicationDecision: (target, decision, atDate) => {
+        const formStore = useFormStore.getState()
+        const activeByForm = formStore.getActiveApplicationsForForm(target as FormType)
+        if (activeByForm.length > 0) {
+          processApplicationDecision(activeByForm[0].id, decision, 'Outcome decision', atDate)
+          return true
+        }
+
+        const existing = formStore.getApplication(target)
+        if (!existing) {
+          return false
+        }
+
+        processApplicationDecision(existing.id, decision, 'Outcome decision', atDate)
+        return true
+      },
+      triggerTrap: (trapId, atDate) => {
+        setFlag(`trap_triggered:${trapId}`, true)
+        const trap = processPolicyTraps(
+          {
+            ...buildConditionContext(atDate),
+            currentDate: atDate,
+            getFlag,
+            setFlag,
+            statusType: status?.type,
+          },
+          (trapOutcome) => {
+            // eslint-disable-next-line react-hooks/immutability
+            void executeSingleOutcome(trapOutcome, atDate)
+          }
+        )
+        return trap.includes(trapId)
+      },
+      addDocument,
+      removeDocument,
+      random: () => nextRandom('core'),
+      addMonths,
+    })
+  }, [
+    addDocument,
+    addExpense,
+    addIncome,
+    buildConditionContext,
+    getFlag,
+    modifyRelationship,
+    modifyStat,
+    nextRandom,
+    processApplicationDecision,
+    queueEvent,
+    removeDocument,
+    setFlag,
+    status?.type,
+    transitionStatus,
+  ])
+
+  const processOutcome = useCallback((outcome: EventOutcome, currentDate: GameDate): void => {
+    void executeSingleOutcome(outcome, currentDate)
+  }, [executeSingleOutcome])
+
+  const processOutcomes = useCallback((outcomes: EventOutcome[], currentDate: GameDate): number => {
+    return executeOutcomes(outcomes, currentDate, {
+      getFlag,
+      setFlag,
+      modifyStat: (key, delta) => modifyStat(key, delta),
+      queueEvent,
+      queueScheduledEvent: useEventStore.getState().queueScheduledEvent,
+      addIncome,
+      addExpense: (amount, description, atDate) => addExpense(amount, description, 'other', atDate),
+      changeRelationship: (id, delta, reasonText, atDate) => modifyRelationship(id, delta, reasonText, atDate),
+      endGame: () => useGameStore.getState().setScreen('ending'),
+      transitionStatus,
+      fileApplication: (formId, atDate) => {
+        try {
+          useFormStore.getState().fileApplication(formId as FormType, atDate, () => nextRandom('forms'))
+          return true
+        } catch {
+          return false
+        }
+      },
+      applyApplicationDecision: (target, decision, atDate) => {
+        const formStore = useFormStore.getState()
+        const app = formStore.getApplication(target)
+        if (app) {
+          processApplicationDecision(app.id, decision, 'Outcome decision', atDate)
+          return true
+        }
+
+        const activeByForm = formStore.getActiveApplicationsForForm(target as FormType)
+        if (activeByForm.length > 0) {
+          processApplicationDecision(activeByForm[0].id, decision, 'Outcome decision', atDate)
+          return true
+        }
+
+        return false
+      },
+      triggerTrap: (trapId, atDate) => {
+        setFlag(`trap_triggered:${trapId}`, true)
+        const triggered = processPolicyTraps(
+          {
+            ...buildConditionContext(atDate),
+            currentDate: atDate,
+            getFlag,
+            setFlag,
+            statusType: status?.type,
+          },
+          (trapOutcome) => {
+            void executeSingleOutcome(trapOutcome, atDate)
+          }
+        )
+
+        return triggered.includes(trapId)
+      },
+      addDocument,
+      removeDocument,
+      random: () => nextRandom('core'),
+      addMonths,
+    })
+  }, [
+    addDocument,
+    addExpense,
+    addIncome,
+    buildConditionContext,
+    executeSingleOutcome,
+    getFlag,
+    modifyRelationship,
+    modifyStat,
+    nextRandom,
+    processApplicationDecision,
+    queueEvent,
+    removeDocument,
+    setFlag,
+    status?.type,
+    transitionStatus,
+  ])
+
+  const canSelectChoice = useCallback((choice: EventChoice): boolean => {
+    const currentDate = getCurrentDate()
+
+    if (choice.requirements && choice.requirements.length > 0) {
+      const requirementsMet = evaluateConditions(choice.requirements, buildConditionContext(currentDate))
+      if (!requirementsMet) {
+        return false
       }
-      if (timing.latestMonth !== undefined) {
-        const latestDays = timing.latestMonth * 30
-        if (totalDaysElapsed > latestDays) {
+    }
+
+    if (choice.costs && choice.costs.length > 0) {
+      for (const cost of choice.costs) {
+        if (cost.type === 'money' && !canAfford(cost.amount)) {
           return false
         }
       }
     }
 
     return true
-  }, [hasCompletedEvent, selectedCharacterId, status, evaluateConditions, totalDaysElapsed])
+  }, [buildConditionContext, canAfford, getCurrentDate])
 
-  // Get all eligible events for the current state
-  const getEligibleEvents = useCallback((): GameEvent[] => {
-    return EVENTS.filter(isEventEligible)
-  }, [isEventEligible])
-
-  // Select the next event to show
   const selectNextEvent = useCallback((): GameEvent | null => {
     const currentDate = getCurrentDate()
+    return resolveNextEvent({
+      events: EVENTS,
+      queuedEventIds: eventQueue.map((entry) => entry.eventId),
+      scheduledEventIds: getScheduledEventsForDate(currentDate),
+      currentDate,
+      totalMonthsElapsed,
+      randomValue: nextRandom('events'),
+      isEligible: (event) => isEventEligible(event, currentDate),
+    })
+  }, [
+    eventQueue,
+    getCurrentDate,
+    getScheduledEventsForDate,
+    isEventEligible,
+    nextRandom,
+    totalMonthsElapsed,
+  ])
 
-    // 1. Check for scheduled events
-    const scheduledIds = getScheduledEventsForDate(currentDate)
-    for (const eventId of scheduledIds) {
-      const event = EVENTS.find(e => e.id === eventId)
-      if (event && isEventEligible(event)) {
-        return event
-      }
+  const handleChoiceSelection = useCallback((eventId: string, choiceId: string): boolean => {
+    const event = EVENTS.find((item) => item.id === eventId)
+    if (!event) {
+      return false
     }
 
-    // 2. Get all eligible random events
-    const eligibleEvents = getEligibleEvents().filter(e => e.timing.type === 'random')
-
-    if (eligibleEvents.length === 0) {
-      return null
+    const choice = event.choices.find((item) => item.id === choiceId)
+    if (!choice) {
+      return false
     }
 
-    // 3. Use weighted random selection
-    const selected = weightedRandom(eligibleEvents)
-    return selected
-  }, [getCurrentDate, getScheduledEventsForDate, isEventEligible, getEligibleEvents])
-
-  // Process an outcome
-  const processOutcome = useCallback((outcome: EventOutcome, currentDate: GameDate) => {
-    // Handle probability
-    if (outcome.probability !== undefined && Math.random() > outcome.probability) {
-      return
+    if (!canSelectChoice(choice)) {
+      return false
     }
-
-    switch (outcome.type) {
-      case 'flag-set':
-        setFlag(outcome.target, outcome.value as string | number | boolean)
-        break
-      case 'flag-increment':
-        const current = (getFlag(outcome.target) as number) || 0
-        setFlag(outcome.target, current + (outcome.value as number))
-        break
-      case 'stat-change':
-        modifyStat(outcome.target as keyof typeof stats, outcome.value as number)
-        break
-      case 'queue-event':
-        const delay = outcome.delayMonths || 0
-        if (delay > 0) {
-          const futureDate = addMonths(currentDate, delay)
-          useEventStore.getState().queueScheduledEvent(outcome.target, futureDate)
-        } else {
-          queueEvent(outcome.target)
-        }
-        break
-      case 'trigger-event':
-        queueEvent(outcome.target, 10) // High priority
-        break
-      case 'finance-add':
-        useFinanceStore.getState().addIncome(outcome.value as number, outcome.target, currentDate)
-        break
-      case 'finance-subtract':
-        useFinanceStore.getState().addExpense(outcome.value as number, outcome.target, 'other', currentDate)
-        break
-      case 'relationship-change':
-        useRelationshipStore.getState().modifyRelationship(
-          outcome.target,
-          outcome.value as number,
-          'Event outcome',
-          currentDate
-        )
-        break
-      case 'end-game':
-        useGameStore.getState().setScreen('ending')
-        break
-      default:
-        break
-    }
-  }, [setFlag, getFlag, modifyStat, queueEvent])
-
-  // Process event choice selection
-  const handleChoiceSelection = useCallback((eventId: string, choiceId: string): void => {
-    const event = EVENTS.find(e => e.id === eventId)
-    if (!event) return
-
-    const choice = event.choices.find(c => c.id === choiceId)
-    if (!choice) return
 
     const currentDate = getCurrentDate()
 
-    // Process all outcomes
-    for (const outcome of choice.outcomes) {
-      processOutcome(outcome, currentDate)
-    }
+    // Process all outcomes using exhaustive executor.
+    processOutcomes(choice.outcomes, currentDate)
 
     // Complete the event
     completeEvent(eventId, choiceId, currentDate, choice.outcomes)
 
     // Show outcome text
-    useEventStore.getState().showOutcome(choice.outcomeText)
+    showOutcome(choice.outcomeText)
 
-    // Queue next event if specified
+    // Queue explicit continuation
     if (choice.nextEventId) {
-      queueEvent(choice.nextEventId, 10)
+      queueEvent(choice.nextEventId, 100)
+    } else if (event.chainId) {
+      const chain = getChainById(EVENT_CHAINS, event.chainId)
+      if (chain) {
+        const nextChainEventId = getNextChainEventId(chain, event.id)
+        if (nextChainEventId) {
+          queueEvent(nextChainEventId, 90)
+        }
+      }
     }
-  }, [getCurrentDate, processOutcome, completeEvent, queueEvent])
 
-  // Trigger a random event (called each month)
+    return true
+  }, [canSelectChoice, completeEvent, getCurrentDate, processOutcomes, queueEvent, showOutcome])
+
   const triggerRandomEvent = useCallback((): boolean => {
-    // Random chance of event each month (e.g., 40%)
-    if (Math.random() > 0.4) {
+    // Deterministic event chance each month.
+    if (nextRandom('events') > 0.4) {
       return false
     }
 
@@ -270,22 +443,69 @@ export function useEventEngine() {
     }
 
     return false
-  }, [selectNextEvent, setCurrentEvent])
+  }, [nextRandom, selectNextEvent, setCurrentEvent])
 
-  // V3: Check for upcoming events and return foreshadowing hint
-  const checkForUpcomingEvents = useCallback((currentDate: GameDate): string | null => {
-    // Check for scheduled events in the next 1-3 months
+  const processMonthlySystems = useCallback((currentDate: GameDate): void => {
+    processMonthlyFormLifecycle(currentDate, () => nextRandom('forms'))
+
+    const conditionContext = buildConditionContext(currentDate)
+    const legalChecks = evaluateLegalRuleChecks({
+      ...conditionContext,
+      currentDate,
+      getFlag,
+      setFlag,
+      statusType: status?.type,
+    })
+
+    for (const rule of legalChecks) {
+      setFlag(`legal_rule:${rule.id}`, true)
+    }
+
+    processPolicyTraps(
+      {
+        ...conditionContext,
+        currentDate,
+        getFlag,
+        setFlag,
+        statusType: status?.type,
+      },
+      (trapOutcome) => {
+        processOutcome(trapOutcome, currentDate)
+      }
+    )
+
+    // Deadline auto-flags for downstream events and urgency UI.
+    for (const deadline of activeDeadlines) {
+      const daysLeft = getDaysUntilDeadline(deadline)
+      const monthsLeft = Math.ceil(daysLeft / 30)
+      setFlag(`deadline:${deadline.id}:days_left`, daysLeft)
+      setFlag(`deadline:${deadline.id}:months_left`, monthsLeft)
+      if (daysLeft <= 0) {
+        setFlag(`deadline:${deadline.id}:past_due`, true)
+      }
+    }
+  }, [
+    activeDeadlines,
+    buildConditionContext,
+    getDaysUntilDeadline,
+    getFlag,
+    nextRandom,
+    processOutcome,
+    setFlag,
+    status?.type,
+  ])
+
+  const checkForUpcomingEvents = useCallback((date: GameDate): string | null => {
     const upcomingMonths = [1, 2, 3]
     const hints: string[] = []
 
     for (const monthsAhead of upcomingMonths) {
-      const futureDate = addMonths(currentDate, monthsAhead)
+      const futureDate = addMonths(date, monthsAhead)
       const scheduledIds = getScheduledEventsForDate(futureDate)
 
       for (const eventId of scheduledIds) {
-        const event = EVENTS.find(e => e.id === eventId)
+        const event = EVENTS.find((item) => item.id === eventId)
         if (event?.foreshadowing) {
-          // Return closer hints with higher priority
           if (monthsAhead === 1) {
             return event.foreshadowing
           }
@@ -294,44 +514,33 @@ export function useEventEngine() {
       }
     }
 
-    // Check deadline pressure
-    const { activeDeadlines, deadlinePressure } = useTimeStore.getState()
-    if (deadlinePressure >= 80) {
-      return 'A critical deadline approaches...'
-    } else if (deadlinePressure >= 50) {
-      return 'Important dates are drawing near...'
-    }
-
-    // Check if any important events are eligible and likely to trigger soon
-    const eligibleEvents = getEligibleEvents()
-    const importantEligible = eligibleEvents.filter(e =>
-      e.isImportant || e.tags?.includes('milestone') || e.tags?.includes('critical')
+    const importantEligible = getEligibleEvents().filter(
+      (event) => event.isImportant || event.tags?.includes('milestone') || event.tags?.includes('critical')
     )
 
-    if (importantEligible.length > 0 && Math.random() > 0.7) {
-      const randomHint = importantEligible[Math.floor(Math.random() * importantEligible.length)]
-      if (randomHint.foreshadowing) {
-        return randomHint.foreshadowing
-      }
-      return 'Something significant may happen soon...'
+    if (importantEligible.length > 0 && nextRandom('events') > 0.7) {
+      const index = Math.floor(nextRandom('events') * importantEligible.length)
+      const selected = importantEligible[index]
+      return selected.foreshadowing || 'Something significant may happen soon...'
     }
 
-    // Return collected hints or null
-    return hints.length > 0 ? hints[0] : null
-  }, [getScheduledEventsForDate, getEligibleEvents])
+    return hints[0] || null
+  }, [getEligibleEvents, getScheduledEventsForDate, nextRandom])
 
   return {
     evaluateCondition,
-    evaluateConditions,
+    evaluateConditions: evaluateConditionsList,
     isEventEligible,
     getEligibleEvents,
     selectNextEvent,
     processOutcome,
+    processOutcomes,
     handleChoiceSelection,
     triggerRandomEvent,
     setCurrentEvent,
     clearCurrentEvent,
-    // V3: Foreshadowing
     checkForUpcomingEvents,
+    processMonthlySystems,
+    canSelectChoice,
   }
 }

@@ -9,7 +9,7 @@ interface UseTimeFlowOptions {
   onDayAdvance?: () => void
   onEventTriggered?: (eventId: string) => void
   onQuietPeriodStart?: (days: number) => void
-  onForeshadowing?: (hint: string) => void  // V3: Foreshadowing callback
+  onForeshadowing?: (hint: string) => void
 }
 
 export function useTimeFlow(options: UseTimeFlowOptions = {}) {
@@ -45,7 +45,6 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     advanceMode,
     transitionState,
     setUpcomingEventHint,
-    setCanAdvance,
     startTransition,
     completeTransition,
   } = useTimeStore()
@@ -59,10 +58,10 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
   } = useEventStore()
 
   const { processMonthEnd } = useFinanceStore()
-  const { selectNextEvent, setCurrentEvent, triggerRandomEvent, checkForUpcomingEvents } = useEventEngine()
+  const { triggerRandomEvent, checkForUpcomingEvents, processMonthlySystems } = useEventEngine()
 
   // Check if we should be running (only for auto mode)
-  const shouldAutoRun = enabled && advanceMode === 'auto' && flowMode !== 'paused' && !currentEvent && !isProcessingRef.current
+  const shouldAutoRun = enabled && advanceMode === 'auto' && flowMode !== 'paused' && !currentEvent
 
   // V3: Check for upcoming events and set foreshadowing hints
   const updateForeshadowing = useCallback(() => {
@@ -89,9 +88,10 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
       advanceDay()
       onDayAdvance?.()
 
-      // Process finances at month end
+      // Process finances and monthly systems at month end
       if (wasMonthEnd) {
         processMonthEnd(currentDate)
+        processMonthlySystems(currentDate)
       }
 
       // Update deadline pressure
@@ -107,7 +107,7 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
           removeInterrupt(interrupt.eventId)
           resetDaysSinceEvent()
           isProcessingRef.current = false
-          return true  // Event triggered
+          return true
         }
       }
 
@@ -128,7 +128,7 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
       }
 
       isProcessingRef.current = false
-      return false  // No event
+      return false
     } catch (error) {
       console.error('Error processing day:', error)
       isProcessingRef.current = false
@@ -138,6 +138,7 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     getCurrentDate,
     isMonthEnd,
     processMonthEnd,
+    processMonthlySystems,
     advanceDay,
     updateDeadlinePressure,
     hasInterrupts,
@@ -158,9 +159,6 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
 
     if (settings.quietPeriodAutoSkip) {
       // Advance multiple days at once
-      const currentDate = getCurrentDate()
-
-      // Process month ends within the skip period
       let daysToProcess = quietPeriodDays
       while (daysToProcess > 0) {
         const daysInCurrentMonth = useTimeStore.getState().getDaysInCurrentMonth()
@@ -170,6 +168,7 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
         if (daysUntilMonthEnd < daysToProcess) {
           // Process month end
           processMonthEnd(getCurrentDate())
+          processMonthlySystems(getCurrentDate())
         }
         daysToProcess -= Math.min(daysUntilMonthEnd + 1, daysToProcess)
       }
@@ -184,6 +183,7 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
     settings.quietPeriodAutoSkip,
     getCurrentDate,
     processMonthEnd,
+    processMonthlySystems,
     advanceDays,
     endQuietPeriod,
     onQuietPeriodStart,
@@ -195,20 +195,31 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
       return false
     }
 
-    // Handle quiet periods
-    if (isQuietPeriod && quietPeriodDays > 0) {
-      processQuietPeriod()
-      return true
-    }
+    startTransition()
 
-    // Process the day
-    const eventTriggered = processDay()
+    window.setTimeout(() => {
+      if (isQuietPeriod && quietPeriodDays > 0) {
+        processQuietPeriod()
+      } else {
+        processDay()
+      }
 
-    // Update foreshadowing for next day after a delay
-    setTimeout(updateForeshadowing, 100)
+      completeTransition()
+      updateForeshadowing()
+    }, 500)
 
-    return eventTriggered
-  }, [advanceMode, currentEvent, isQuietPeriod, quietPeriodDays, processQuietPeriod, processDay, updateForeshadowing])
+    return true
+  }, [
+    advanceMode,
+    currentEvent,
+    isQuietPeriod,
+    quietPeriodDays,
+    startTransition,
+    processQuietPeriod,
+    processDay,
+    completeTransition,
+    updateForeshadowing,
+  ])
 
   // Main timer effect (only for auto mode)
   useEffect(() => {
@@ -218,10 +229,15 @@ export function useTimeFlow(options: UseTimeFlowOptions = {}) {
       timerRef.current = null
     }
 
-    // V3: In manual mode, don't auto-advance, but do update foreshadowing
+    // In manual mode, don't auto-advance, but do update foreshadowing
     if (advanceMode === 'manual') {
       setAutoAdvanceTimer(null)
       updateForeshadowing()
+      return
+    }
+
+    if (isProcessingRef.current) {
+      setAutoAdvanceTimer(null)
       return
     }
 

@@ -5,7 +5,6 @@ import type {
   FormOutcomeType,
   RFE,
   GameDate,
-  PendingFee,
 } from '@/types'
 import { generateId, generateReceiptNumber, addMonths } from '@/lib/utils'
 
@@ -45,7 +44,7 @@ interface FormState {
   withdrawnApplications: Application[]
 
   // Actions
-  fileApplication: (formId: FormType, filedDate: GameDate) => Application
+  fileApplication: (formId: FormType, filedDate: GameDate, random?: () => number) => Application
   respondToRFE: (applicationId: string, responseDate: GameDate) => void
   processApplicationDecision: (applicationId: string, outcome: FormOutcomeType, reason: string, date: GameDate) => void
   withdrawApplication: (applicationId: string, date: GameDate) => void
@@ -53,7 +52,10 @@ interface FormState {
   scheduleInterview: (applicationId: string, date: GameDate, location: string) => void
   getApplication: (applicationId: string) => Application | undefined
   getActiveApplicationsForForm: (formId: FormType) => Application[]
-  processMonthlyApplications: (currentDate: GameDate) => Array<{ applicationId: string; outcome: FormOutcomeType }>
+  processMonthlyApplications: (
+    currentDate: GameDate,
+    random?: () => number
+  ) => Array<{ applicationId: string; outcome: FormOutcomeType }>
   getTotalFees: (formId: FormType) => number
   reset: () => void
 }
@@ -68,10 +70,11 @@ const initialState = {
 export const useFormStore = create<FormState>((set, get) => ({
   ...initialState,
 
-  fileApplication: (formId, filedDate) => {
+  fileApplication: (formId, filedDate, random = Math.random) => {
     const formData = FORM_DATA[formId]
-    const processingMonths = formData.avgProcessingMonths +
-      Math.floor(Math.random() * (formData.processingRange[1] - formData.processingRange[0]))
+    const min = formData.processingRange[0]
+    const max = formData.processingRange[1]
+    const processingMonths = min + Math.floor(random() * (max - min + 1))
 
     const application: Application = {
       id: generateId(),
@@ -177,7 +180,7 @@ export const useFormStore = create<FormState>((set, get) => ({
     return get().activeApplications.filter(a => a.formId === formId)
   },
 
-  processMonthlyApplications: (currentDate) => {
+  processMonthlyApplications: (currentDate, random = Math.random) => {
     const state = get()
     const decisions: Array<{ applicationId: string; outcome: FormOutcomeType }> = []
 
@@ -195,13 +198,13 @@ export const useFormStore = create<FormState>((set, get) => ({
                                   (currentDate.month - app.estimatedDecisionDate.month)
       const decisionChance = Math.min(0.3 + monthsPastEstimate * 0.1, 0.8)
 
-      if (Math.random() < decisionChance) {
+      if (random() < decisionChance) {
         // Determine outcome (simplified - base rate + RFE response consideration)
         const baseApprovalRate = 0.75
         const hasRespondedToRFE = app.rfe?.responded ?? true
         const approvalRate = hasRespondedToRFE ? baseApprovalRate : baseApprovalRate * 0.5
 
-        const outcome: FormOutcomeType = Math.random() < approvalRate ? 'approved' : 'denied'
+        const outcome: FormOutcomeType = random() < approvalRate ? 'approved' : 'denied'
         decisions.push({ applicationId: app.id, outcome })
       }
     }

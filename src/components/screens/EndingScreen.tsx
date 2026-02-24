@@ -3,8 +3,10 @@ import { Button, Card, CardHeader, CardTitle, CardContent } from '@/components/u
 import { formatCurrency, getStatusDisplayName } from '@/lib/utils'
 import { PROFILES } from './CharacterSelect'
 import { RotateCcw, Share2, ExternalLink } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export function EndingScreen() {
+  const { t } = useTranslation('ui')
   const { selectedCharacterId, resetGame, setScreen, playTimeMinutes } = useGameStore()
   const { currentYear, totalDaysElapsed } = useTimeStore()
   const { status, statusHistory, profile } = useCharacterStore()
@@ -41,7 +43,7 @@ export function EndingScreen() {
         {/* Final Status */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Final Status</CardTitle>
+            <CardTitle>{t('ending.finalStatus')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center py-4">
@@ -98,14 +100,14 @@ export function EndingScreen() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button onClick={handlePlayAgain}>
             <RotateCcw className="mr-2 h-4 w-4" />
-            Play Another Story
+            {t('ending.playAgain')}
           </Button>
           <Button variant="outline" disabled>
             <Share2 className="mr-2 h-4 w-4" />
-            Share
+            {t('ending.share')}
           </Button>
           <Button variant="outline" onClick={handleMainMenu}>
-            Main Menu
+            {t('ending.mainMenu')}
           </Button>
         </div>
 

@@ -283,7 +283,7 @@ function PersonArrival({ stage, event }: { stage: string; event: GameEvent }) {
 }
 
 // News arrival - banner slides across
-function NewsArrival({ stage, event }: { stage: string; event: GameEvent }) {
+function NewsArrival({ event }: { stage: string; event: GameEvent }) {
   return (
     <motion.div
       className="relative w-full max-w-lg"
@@ -423,7 +423,7 @@ function EmergencyArrival({ stage, event }: { stage: string; event: GameEvent })
 }
 
 // Default - simple fade in
-function DefaultArrival({ stage, event }: { stage: string; event: GameEvent }) {
+function DefaultArrival({ event }: { stage: string; event: GameEvent }) {
   return (
     <motion.div
       className="text-center"

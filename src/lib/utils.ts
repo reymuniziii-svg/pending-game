@@ -1,6 +1,14 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import type { GameDate, RelationshipLevel, ImmigrationStatusType, MONTH_NAMES } from '@/types'
+import { DAYS_IN_MONTH, type GameDate, type RelationshipLevel, type ImmigrationStatusType } from '@/types'
+
+function getDaysInMonth(month: number, year: number): number {
+  if (month === 2) {
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0)
+    return isLeapYear ? 29 : 28
+  }
+  return DAYS_IN_MONTH[month] ?? 30
+}
 
 /**
  * Merge Tailwind classes with clsx
@@ -38,10 +46,11 @@ export function monthsBetween(from: GameDate, to: GameDate): number {
  * Add months to a date
  */
 export function addMonths(date: GameDate, months: number): GameDate {
-  let totalMonths = date.year * 12 + date.month + months
+  const totalMonths = date.year * 12 + date.month + months
   const year = Math.floor((totalMonths - 1) / 12)
   const month = ((totalMonths - 1) % 12) + 1
-  return { month, year }
+  const day = Math.min(date.day, getDaysInMonth(month, year))
+  return { day, month, year }
 }
 
 /**

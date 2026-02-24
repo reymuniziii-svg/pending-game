@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { SaveData, SaveSlot, ImmigrationStatusType } from '@/types'
+import type { SaveData, SaveSlot } from '@/types'
 import { computeChecksum } from '@/lib/utils'
 
 import { useGameStore } from './useGameStore'
@@ -10,6 +10,7 @@ import { useFinanceStore } from './useFinanceStore'
 import { useEventStore } from './useEventStore'
 import { useFormStore } from './useFormStore'
 import { useRelationshipStore } from './useRelationshipStore'
+import { useSimulationStore } from './useSimulationStore'
 
 const SAVE_VERSION = '1.0.0'
 const STORAGE_KEY_PREFIX = 'pending_save_'
@@ -50,6 +51,7 @@ function serializeGameState(): SaveData {
   const events = useEventStore.getState()
   const forms = useFormStore.getState()
   const relationships = useRelationshipStore.getState()
+  const simulation = useSimulationStore.getState()
 
   const saveData: Omit<SaveData, 'checksum'> = {
     version: SAVE_VERSION,
@@ -122,6 +124,9 @@ function serializeGameState(): SaveData {
       missedWeddings: 0,
       childrenBorn: 0,
     },
+    bundleVersion: simulation.bundleVersion,
+    simulationSeed: simulation.seed,
+    simulationTurn: simulation.turn,
   }
 
   return {
@@ -199,6 +204,19 @@ function applySaveToStores(save: SaveData): void {
     selectedCharacterId: save.characterId,
     playTimeMinutes: save.playTimeMinutes,
     currentScreen: 'game',
+  })
+
+  // Apply simulation seed state for deterministic replay.
+  useSimulationStore.setState({
+    seed: save.simulationSeed || useSimulationStore.getState().seed,
+    turn: save.simulationTurn || 0,
+    bundleVersion: save.bundleVersion || useSimulationStore.getState().bundleVersion,
+    streamCounters: {
+      core: 0,
+      events: 0,
+      forms: 0,
+      traps: 0,
+    },
   })
 }
 

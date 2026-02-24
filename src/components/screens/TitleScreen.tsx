@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useGameStore } from '@/stores'
 import { Button } from '@/components/ui'
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -10,9 +11,13 @@ import {
   DialogFooter,
 } from '@/components/ui'
 import { AlertTriangle, ExternalLink } from 'lucide-react'
+import { useSettingsStore } from '@/stores'
 
 export function TitleScreen() {
-  const { currentScreen, setScreen, acknowledgeContentWarning, hasSeenContentWarning } = useGameStore()
+  const { t } = useTranslation('ui')
+  const { setScreen, acknowledgeContentWarning, hasSeenContentWarning } = useGameStore()
+  const language = useSettingsStore((state) => state.language)
+  const setLanguage = useSettingsStore((state) => state.setLanguage)
   const [showWarning, setShowWarning] = useState(false)
 
   const handleBegin = () => {
@@ -33,14 +38,14 @@ export function TitleScreen() {
       {/* Main Title */}
       <div className="text-center max-w-2xl mx-auto">
         <h1 className="text-6xl md:text-7xl font-serif font-bold text-primary mb-4 tracking-tight">
-          Pending
+          {t('app.title')}
         </h1>
         <p className="text-xl md:text-2xl text-foreground/80 font-serif italic mb-2">
-          A Life in the System
+          {t('app.subtitle')}
         </p>
         <div className="w-24 h-px bg-border mx-auto my-8" />
         <p className="text-base text-muted-foreground max-w-md mx-auto mb-12">
-          A life simulation revealing the US immigration system through lived experience.
+          {t('title.tagline')}
         </p>
 
         <div className="flex flex-col gap-4 items-center">
@@ -49,16 +54,31 @@ export function TitleScreen() {
             onClick={handleBegin}
             className="min-w-[200px]"
           >
-            Begin
+            {t('title.begin')}
           </Button>
 
           <div className="flex gap-4 mt-4">
             <Button variant="ghost" size="sm" disabled>
-              Load Game
+              {t('title.loadGame')}
             </Button>
             <Button variant="ghost" size="sm" disabled>
-              About
+              {t('title.about')}
             </Button>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              className={`px-2 py-1 rounded ${language === 'en' ? 'bg-accent text-white' : 'bg-muted'}`}
+              onClick={() => setLanguage('en')}
+            >
+              EN
+            </button>
+            <button
+              className={`px-2 py-1 rounded ${language === 'es' ? 'bg-accent text-white' : 'bg-muted'}`}
+              onClick={() => setLanguage('es')}
+            >
+              ES
+            </button>
           </div>
         </div>
       </div>
@@ -74,9 +94,9 @@ export function TitleScreen() {
           <DialogHeader>
             <div className="flex items-center gap-2 text-warning mb-2">
               <AlertTriangle className="h-5 w-5" />
-              <span className="text-sm font-medium uppercase tracking-wide">Content Notice</span>
+              <span className="text-sm font-medium uppercase tracking-wide">{t('title.contentNotice')}</span>
             </div>
-            <DialogTitle className="text-xl">Before You Begin</DialogTitle>
+            <DialogTitle className="text-xl">{t('title.beforeYouBegin')}</DialogTitle>
             <DialogDescription className="text-base leading-relaxed mt-4">
               This game depicts real experiences of immigrants navigating the US immigration system.
             </DialogDescription>
@@ -115,10 +135,10 @@ export function TitleScreen() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowWarning(false)}>
-              Go Back
+              {t('title.goBack')}
             </Button>
             <Button onClick={handleAcknowledge}>
-              I Understand
+              {t('title.understand')}
             </Button>
           </DialogFooter>
         </DialogContent>

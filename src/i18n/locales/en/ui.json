@@ -1,0 +1,55 @@
+{
+  "app": {
+    "title": "Pending",
+    "subtitle": "A Life in the System",
+    "nonLegalDisclaimer": "Educational simulation only. Not legal advice."
+  },
+  "title": {
+    "begin": "Begin",
+    "loadGame": "Load Game",
+    "about": "About",
+    "tagline": "A life simulation revealing the US immigration system through lived experience.",
+    "contentNotice": "Content Notice",
+    "beforeYouBegin": "Before You Begin",
+    "goBack": "Go Back",
+    "understand": "I Understand"
+  },
+  "characterSelect": {
+    "title": "Choose Your Story",
+    "subtitle": "Each path reveals different aspects of the system.",
+    "back": "Back",
+    "beginStory": "Begin {{name}}'s Story"
+  },
+  "game": {
+    "year": "Year {{year}}",
+    "paused": "Paused",
+    "resume": "Resume",
+    "mainMenu": "Main Menu",
+    "saveGame": "Save Game",
+    "settings": "Settings",
+    "nextMonth": "Next Month",
+    "noPendingApplications": "No pending applications."
+  },
+  "settings": {
+    "title": "Game Settings",
+    "language": "Language",
+    "motion": "Motion",
+    "content": "Content Intensity",
+    "subtitleSpeed": "Subtitle Speed",
+    "fontScale": "Font Scale",
+    "english": "English",
+    "spanish": "Spanish",
+    "full": "Full",
+    "reduced": "Reduced",
+    "softened": "Softened",
+    "small": "Small",
+    "medium": "Medium",
+    "large": "Large"
+  },
+  "ending": {
+    "finalStatus": "Final Status",
+    "playAgain": "Play Another Story",
+    "share": "Share",
+    "mainMenu": "Main Menu"
+  }
+}

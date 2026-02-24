@@ -1,4 +1,4 @@
-import type { PolicyTrap, TrapSeverity, EventCondition, EventOutcome } from '@/types'
+import type { PolicyTrap, TrapSeverity } from '@/types'
 
 // Policy traps represent real dysfunctions in the immigration system
 // These are the "gotcha" moments that can derail someone's immigration journey
@@ -315,18 +315,20 @@ export function checkTrapConditions(
     const { type, target, operator, value } = condition
 
     switch (type) {
-      case 'flag':
+      case 'flag': {
         const flagValue = gameState.flags?.[target]
         if (operator === '==') return flagValue === value
         if (operator === 'not-exists') return flagValue === undefined
         return false
+      }
 
-      case 'stat':
+      case 'stat': {
         const statValue = gameState.stats?.[target] || 0
         if (operator === '>=') return statValue >= (value as number)
         if (operator === '<') return statValue < (value as number)
         if (operator === '>') return statValue > (value as number)
         return false
+      }
 
       case 'status':
         return gameState.status === value

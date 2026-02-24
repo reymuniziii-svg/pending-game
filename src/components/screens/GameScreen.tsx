@@ -13,6 +13,10 @@ import {
   useSceneType,
   DecisionCard,
   LoadingSpinner,
+  EventArrival,
+  OutcomeDisplay,
+  AchievementNotification,
+  GameSettingsPanel,
 } from '@/components/ui'
 import { PROFILES } from './CharacterSelect'
 import { useEventEngine, useTimeFlow } from '@/hooks'
@@ -31,8 +35,10 @@ import {
   Clock,
   Home,
   CalendarDays,
+  Settings,
 } from 'lucide-react'
 import { formatCurrency, getStatusDisplayName, getStatusColor, cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 
 // Get character class name for styling
 function getCharacterClass(characterId: string | null): string {
@@ -53,6 +59,7 @@ function isSystemEvent(tags?: string[]): boolean {
 }
 
 export function GameScreen() {
+  const { t } = useTranslation('ui')
   const {
     isInOpeningSequence,
     openingBeatIndex,
@@ -64,25 +71,25 @@ export function GameScreen() {
   } = useGameStore()
 
   const {
-    currentDay,
-    currentMonth,
-    currentYear,
     getFormattedDate,
     totalDaysElapsed,
     flowMode,
     deadlinePressure,
+    upcomingEventHint,
   } = useTimeStore()
 
-  const { profile, status, stats, flags } = useCharacterStore()
+  const { profile, status, stats } = useCharacterStore()
   const { bankBalance, getMonthlyNetIncome, totalImmigrationSpending } = useFinanceStore()
-  const { currentEvent, showingOutcome, lastOutcomeText, hideOutcome, clearCurrentEvent } = useEventStore()
+  const { currentEvent, showingOutcome, lastOutcomeText, hideOutcome, clearCurrentEvent, eventHistory } = useEventStore()
   const { activeApplications } = useFormStore()
   const { handleChoiceSelection } = useEventEngine()
 
   const [showMonthSummary, setShowMonthSummary] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [arrivalDismissedFor, setArrivalDismissedFor] = useState<string | null>(null)
 
   // V2: Time flow system
-  const { isPaused: isTimePaused, pause, resume, skipDay } = useTimeFlow({
+  const { pause, resume, skipDay, manualAdvance } = useTimeFlow({
     enabled: !isInOpeningSequence && !isGamePaused,
     onDayAdvance: useCallback(() => {
       setShowMonthSummary(true)
@@ -101,6 +108,18 @@ export function GameScreen() {
   const isCurrentEventSystem = useMemo(() => {
     return currentEvent ? isSystemEvent(currentEvent.tags) : false
   }, [currentEvent])
+
+  const shouldShowArrival = !!currentEvent && !showingOutcome && arrivalDismissedFor !== currentEvent.id
+
+  const latestOutcome = useMemo(() => {
+    if (!currentEvent) return []
+    for (let i = eventHistory.length - 1; i >= 0; i--) {
+      if (eventHistory[i].eventId === currentEvent.id) {
+        return eventHistory[i].outcomes
+      }
+    }
+    return []
+  }, [currentEvent, eventHistory])
 
   // Check if player can afford a choice
   const canAffordChoice = useCallback((choice: { costs?: { type: string; amount: number }[] }) => {
@@ -156,7 +175,7 @@ export function GameScreen() {
                   }}
                   className="group"
                 >
-                  {isLastBeat ? 'Begin' : 'Continue'}
+                  {isLastBeat ? t('title.begin') : 'Continue'}
                   <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </div>
@@ -190,11 +209,11 @@ export function GameScreen() {
       )}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="font-serif font-bold text-lg">Pending</h1>
+            <h1 className="font-serif font-bold text-lg">{t('app.title')}</h1>
             <div className="h-4 w-px bg-border" />
             <Badge variant="secondary" className="text-xs flex items-center gap-1">
               <CalendarDays className="h-3 w-3" />
-              Year {Math.floor(totalDaysElapsed / 365) + 1}
+              {t('game.year', { year: Math.floor(totalDaysElapsed / 365) + 1 })}
             </Badge>
           </div>
 
@@ -204,10 +223,15 @@ export function GameScreen() {
               disabled={!!currentEvent}
               onPause={() => pause()}
               onResume={() => resume()}
+              onManualAdvance={() => manualAdvance()}
+              eventHint={upcomingEventHint}
             />
           </div>
 
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setPaused(true)}>
               <Pause className="h-4 w-4" />
             </Button>
@@ -348,16 +372,12 @@ export function GameScreen() {
                   <CardTitle>{currentEvent.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className={cn(
-                    'p-4 rounded-md border-l-4 animate-slide-up',
-                    isCurrentEventSystem ? 'bg-system-muted border-system-accent' : 'bg-life-muted border-life-accent'
-                  )}>
-                    <p className="text-sm">{lastOutcomeText}</p>
-                  </div>
+                  <OutcomeDisplay outcomes={latestOutcome} narrativeText={lastOutcomeText} />
                   <Button
                     onClick={() => {
                       hideOutcome()
                       clearCurrentEvent()
+                      setArrivalDismissedFor(null)
                     }}
                     className="w-full"
                   >
@@ -444,7 +464,7 @@ export function GameScreen() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No pending applications.
+                  {t('game.noPendingApplications')}
                 </p>
               )}
             </CardContent>
@@ -505,30 +525,47 @@ export function GameScreen() {
         </aside>
       </div>
 
+      {shouldShowArrival && currentEvent && (
+        <EventArrival
+          event={currentEvent}
+          onComplete={() => setArrivalDismissedFor(currentEvent.id)}
+        />
+      )}
+
+      <AchievementNotification />
+      <GameSettingsPanel open={showSettings} onOpenChange={setShowSettings} />
+
       {/* Pause Menu Overlay */}
       {isGamePaused && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
           <Card className="w-full max-w-sm shadow-modal">
             <CardHeader>
-              <CardTitle className="text-center">Paused</CardTitle>
+              <CardTitle className="text-center">{t('game.paused')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button className="w-full" onClick={() => setPaused(false)}>
                 <Play className="mr-2 h-4 w-4" />
-                Resume
+                {t('game.resume')}
               </Button>
               <Button variant="outline" className="w-full" disabled>
-                Save Game
+                {t('game.saveGame')}
               </Button>
-              <Button variant="outline" className="w-full" disabled>
-                Settings
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setPaused(false)
+                  setShowSettings(true)
+                }}
+              >
+                {t('game.settings')}
               </Button>
               <div className="pt-2 border-t border-border">
                 <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => {
                   setPaused(false)
                   useGameStore.getState().setScreen('title')
                 }}>
-                  Main Menu
+                  {t('game.mainMenu')}
                 </Button>
               </div>
             </CardContent>

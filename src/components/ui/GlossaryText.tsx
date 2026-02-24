@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react'
-import { parseTextForTerms, containsGlossaryTerms, type TextSegment } from '@/data/glossary'
+import { parseTextForTerms } from '@/data/glossary'
 import { GlossaryTerm } from './GlossaryTerm'
 import { cn } from '@/lib/utils'
 
@@ -64,13 +64,6 @@ export function GlossaryText({
       })}
     </Component>
   )
-}
-
-/**
- * Check if text contains any glossary terms (useful for conditional rendering)
- */
-export function hasGlossaryTerms(text: string): boolean {
-  return containsGlossaryTerms(text)
 }
 
 /**

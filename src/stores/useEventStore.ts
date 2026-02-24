@@ -9,7 +9,6 @@ import type {
   InterruptPriority,
   PendingInterrupt,
 } from '@/types'
-import { generateId } from '@/lib/utils'
 
 interface QueuedEvent {
   eventId: string

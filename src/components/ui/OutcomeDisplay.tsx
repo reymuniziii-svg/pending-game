@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   TrendingUp,
-  TrendingDown,
   DollarSign,
   Heart,
   HeartCrack,
@@ -13,7 +12,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  Sparkles,
 } from 'lucide-react'
 import type { EventOutcome } from '@/types'
 import { cn } from '@/lib/utils'
@@ -24,16 +22,6 @@ interface OutcomeDisplayProps {
   narrativeText?: string
   onComplete?: () => void
   className?: string
-}
-
-// Map outcome types to display info
-const outcomeIcons: Record<string, ReactNode> = {
-  'stat-change': <Activity className="w-5 h-5" />,
-  'finance-add': <DollarSign className="w-5 h-5 text-success" />,
-  'finance-subtract': <DollarSign className="w-5 h-5 text-danger" />,
-  'relationship-change': <Heart className="w-5 h-5" />,
-  'flag-set': <Sparkles className="w-5 h-5" />,
-  'status-change': <AlertTriangle className="w-5 h-5" />,
 }
 
 // Stat icons
@@ -58,7 +46,7 @@ function parseOutcomesToDeltas(outcomes: EventOutcome[]): StatDelta[] {
 
   for (const outcome of outcomes) {
     switch (outcome.type) {
-      case 'stat-change':
+      case 'stat-change': {
         const statValue = outcome.value as number
         deltas.push({
           type: 'stat',
@@ -68,6 +56,7 @@ function parseOutcomesToDeltas(outcomes: EventOutcome[]): StatDelta[] {
           icon: statIcons[outcome.target] || <Activity className="w-4 h-4" />,
         })
         break
+      }
 
       case 'finance-add':
         deltas.push({
@@ -89,7 +78,7 @@ function parseOutcomesToDeltas(outcomes: EventOutcome[]): StatDelta[] {
         })
         break
 
-      case 'relationship-change':
+      case 'relationship-change': {
         const relValue = outcome.value as number
         deltas.push({
           type: 'relationship',
@@ -99,6 +88,7 @@ function parseOutcomesToDeltas(outcomes: EventOutcome[]): StatDelta[] {
           icon: relValue > 0 ? <Heart className="w-4 h-4" /> : <HeartCrack className="w-4 h-4" />,
         })
         break
+      }
 
       case 'status-change':
         deltas.push({

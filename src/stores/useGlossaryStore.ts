@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import type { GlossaryTerm } from '@/data/glossary'
 
 interface GlossaryState {
   // Tracking which terms the player has viewed

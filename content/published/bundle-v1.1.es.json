@@ -1,0 +1,111 @@
+{
+  "version": "v1.1",
+  "locale": "es",
+  "effectiveDate": "2026-02-24",
+  "generatedAt": "2026-02-24T16:10:53.731Z",
+  "events": [
+    {
+      "id": "seed_welcome_event",
+      "title": "Bienvenido a Pending",
+      "description": "Este paquete de contenido base está activo y puede reemplazarse mediante el flujo de publicación de administración.",
+      "timing": {
+        "type": "immediate"
+      },
+      "conditions": [],
+      "weight": 1,
+      "choices": [
+        {
+          "id": "continue",
+          "text": "Continuar",
+          "outcomes": [
+            {
+              "type": "flag-set",
+              "target": "content_bundle_loaded",
+              "value": true
+            }
+          ],
+          "outcomeText": "El paquete de contenido de simulación se cargó correctamente."
+        }
+      ],
+      "tags": [
+        "system"
+      ],
+      "isRepeatable": false,
+      "isMandatory": true,
+      "priority": 1
+    }
+  ],
+  "forms": {
+    "i-130": {
+      "formNumber": "I-130",
+      "officialName": "Petition for Alien Relative",
+      "fee": 535,
+      "source": "https://www.uscis.gov/g-1055"
+    },
+    "i-485": {
+      "formNumber": "I-485",
+      "officialName": "Application to Register Permanent Residence",
+      "fee": 1225,
+      "source": "https://www.uscis.gov/g-1055"
+    },
+    "i-765": {
+      "formNumber": "I-765",
+      "officialName": "Application for Employment Authorization",
+      "fee": 410,
+      "source": "https://www.uscis.gov/g-1055"
+    }
+  },
+  "traps": [],
+  "glossary": {
+    "terms": [
+      {
+        "id": "uscis",
+        "term": "USCIS",
+        "shortDefinition": "Servicios de Ciudadanía e Inmigración de EE. UU.",
+        "fullDefinition": "Agencia federal que adjudica beneficios migratorios, incluyendo ajuste de estatus, naturalización y autorización de empleo.",
+        "category": "agency"
+      },
+      {
+        "id": "i-601a",
+        "term": "I-601A",
+        "shortDefinition": "Exención provisional por presencia ilegal.",
+        "fullDefinition": "Permite pedir una exención antes de viajar al trámite consular cuando existe riesgo de castigos de 3 o 10 años.",
+        "category": "form"
+      }
+    ]
+  },
+  "rules": [
+    {
+      "id": "rule_daca_renewal_only",
+      "name": "DACA Renewal Baseline",
+      "description": "Simulation baseline models DACA as renewal-focused, reflecting current policy uncertainty.",
+      "category": "daca",
+      "effectiveDate": "2026-02-24",
+      "conditions": [],
+      "outcomes": [],
+      "citations": [
+        {
+          "id": "uscis_daca",
+          "sourceUrl": "https://www.uscis.gov/DACA",
+          "title": "Consideration of Deferred Action for Childhood Arrivals (DACA)",
+          "publisher": "USCIS",
+          "retrievedAt": "2026-02-24T00:00:00Z",
+          "effectiveDate": "2026-02-24",
+          "confidence": 0.95
+        }
+      ]
+    }
+  ],
+  "citations": [
+    {
+      "id": "uscis_policy_manual",
+      "sourceUrl": "https://www.uscis.gov/policy-manual",
+      "title": "USCIS Policy Manual",
+      "publisher": "USCIS",
+      "retrievedAt": "2026-02-24T00:00:00Z",
+      "effectiveDate": "2026-02-24",
+      "confidence": 0.9
+    }
+  ],
+  "checksum": "34be4614141d1d667be518b3639fcb863e43ff4f8e31d48e053c17d8cb667223"
+}

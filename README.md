@@ -1,73 +1,165 @@
-# React + TypeScript + Vite
+# Pending | Production Foundation
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Pending is an interactive immigration life-simulation game built with React + TypeScript.
+This repository now includes:
 
-Currently, two official plugins are available:
+- Deterministic simulation engine foundations.
+- Content bundle pipeline with draft/publish flow.
+- Lightweight Fastify API for content/legal/telemetry/admin routes.
+- Bilingual UI shell support (`en`, `es`).
+- Initial test and automation scaffolding.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## File structure
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+/Users/rey/Desktop/01-Active-Projects/pending-game
+  /src
+    /app
+    /engine
+    /content
+    /i18n
+    /assets
+    /components
+    /stores
+    /hooks
+    /data
+  /server
+    /src
+      /routes
+      /services
+      /auth
+      /middleware
+  /content
+    /draft
+    /published
+  /scripts
+  /tests
+    /unit
+    /integration
+    /e2e
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Required npm installs
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Already defined in `package.json`, including:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Frontend/runtime: `i18next`, `react-i18next`, `zod`, `seedrandom`, `idb-keyval`.
+- Backend/API: `fastify`, `@fastify/*`, `jose`, `@google-cloud/*`.
+- Testing: `vitest`, `@playwright/test`, `@axe-core/playwright`, `@testing-library/*`.
+
+Install all:
+
+```bash
+npm install
 ```
+
+## Environment variables
+
+Web example: `.env.example`
+
+```env
+VITE_API_BASE_URL=https://api.pendinggame.com
+VITE_DEFAULT_LOCALE=en
+VITE_FALLBACK_BUNDLE_VERSION=latest
+VITE_TELEMETRY_ENABLED=true
+VITE_BUILD_SHA=dev
+```
+
+API example: `.env.server.example`
+
+```env
+NODE_ENV=production
+PORT=8080
+CORS_ORIGIN=https://pendinggame.com
+GCP_PROJECT_ID=your-project-id
+GCS_CONTENT_BUCKET=pending-content
+GCS_ASSET_BUCKET=pending-assets
+FIRESTORE_DATABASE=(default)
+ADMIN_ALLOWED_EMAILS=editor1@example.com,editor2@example.com
+RATE_LIMIT_PUBLIC_RPM=120
+RATE_LIMIT_ADMIN_RPM=10
+TELEMETRY_SALT=replace_me
+SHEETS_DOC_ID=replace_me
+```
+
+## How to run
+
+Start web app:
+
+```bash
+npm run dev:web
+```
+
+Start API server:
+
+```bash
+npm run dev:api
+```
+
+Build everything:
+
+```bash
+npm run build
+```
+
+Run tests:
+
+```bash
+npm run test
+npm run test:e2e
+```
+
+Content pipeline:
+
+```bash
+npm run content:ingest
+npm run content:validate
+npm run content:publish
+```
+
+## API surface
+
+- `GET /v1/content/bundle?locale=en|es&version=latest`
+- `GET /v1/content/legal-snapshot?version=latest`
+- `POST /v1/telemetry/session-summary`
+- `POST /v1/admin/content/import`
+- `POST /v1/admin/content/publish`
+- `GET /v1/health`
+
+## Permissions, scopes, and auth flows
+
+### Read/write permissions
+
+- Public clients: read published content, write anonymous telemetry summary.
+- Admin/editor: import draft content, publish immutable bundles.
+- Scripts/ingest: write only to `content/draft`.
+
+### Authentication
+
+- Player flow: anonymous, no account required.
+- Admin flow: bearer JWT (Google verification) with allowlisted emails.
+- Local dev fallback: `x-admin-email` header when allowlisted.
+
+### API scopes
+
+- Google Sheets sync is scaffolded for read-only scope:
+  `https://www.googleapis.com/auth/spreadsheets.readonly`.
+
+### Rate limits
+
+- Public content endpoints: default `120 req/min/IP`.
+- Telemetry endpoint: `20 req/min/IP`.
+- Admin endpoints: `10 req/min/user`.
+
+## Security considerations
+
+- Educational-only legal disclaimer shown in app UI.
+- Admin endpoints protected by auth + audit logging.
+- Published bundles are immutable by version.
+- Content import/publish payloads validated with schemas.
+- Telemetry is privacy-first and session IDs are salted+hashed.
+- Generated art manifest stores provider/seed/prompt/rights metadata.
+
+## Notes
+
+This is a production foundation implementation. Some deeper gameplay balancing, narrative localization breadth, and full QA hardening remain as next-stage execution work.

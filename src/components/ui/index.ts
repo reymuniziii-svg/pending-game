@@ -1,4 +1,4 @@
-export { Button, buttonVariants } from './Button'
+export { Button } from './Button'
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './Card'
 export {
   Dialog,
@@ -13,7 +13,7 @@ export {
   DialogDescription,
 } from './Dialog'
 export { Progress } from './Progress'
-export { Badge, badgeVariants } from './Badge'
+export { Badge } from './Badge'
 export { Alert, AlertTitle, AlertDescription } from './Alert'
 export { TimeControlBar } from './TimeControlBar'
 
@@ -44,11 +44,11 @@ export { EventArrival, ArrivalIndicator } from './EventArrival'
 // V3: Glossary Components
 export { GlossaryTerm, SimpleGlossaryTerm, StatusGlossaryBadge } from './GlossaryTerm'
 export { GlossaryPopup, GlossaryMiniPopup } from './GlossaryPopup'
-export { GlossaryText, GlossaryParagraph, GlossaryDescription, NarrativeText, hasGlossaryTerms } from './GlossaryText'
+export { GlossaryText, GlossaryParagraph, GlossaryDescription, NarrativeText } from './GlossaryText'
 
 // V3: Achievement Components
 export { AchievementNotification, AchievementBadge } from './AchievementNotification'
 export { AchievementDisplay, AchievementProgress, AchievementSummary } from './AchievementDisplay'
-
 // V4: Scene Imagery Components
 export { SceneImage, CharacterPortrait, EventScene } from './SceneImage'
+export { GameSettingsPanel } from './GameSettingsPanel'

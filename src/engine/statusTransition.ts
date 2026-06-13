@@ -57,6 +57,10 @@ function canTravel(statusType: ImmigrationStatusType): boolean {
   return !blocked.includes(statusType)
 }
 
+export function getValidTransitions(fromStatus: ImmigrationStatusType): ImmigrationStatusType[] {
+  return transitionMap[fromStatus] ?? []
+}
+
 export function isStatusTransitionAllowed(
   fromStatus: ImmigrationStatusType,
   toStatus: ImmigrationStatusType,

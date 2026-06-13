@@ -3,7 +3,6 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 
 import enUI from './locales/en/ui.json'
-import esUI from './locales/es/ui.json'
 
 const defaultLocale = (import.meta.env.VITE_DEFAULT_LOCALE as string | undefined) || 'en'
 
@@ -13,7 +12,6 @@ i18n
   .init({
     resources: {
       en: { ui: enUI },
-      es: { ui: esUI },
     },
     ns: ['ui'],
     defaultNS: 'ui',

@@ -46,9 +46,6 @@ export function GameSettingsPanel({ open, onOpenChange }: GameSettingsPanelProps
               <Button variant={language === 'en' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('en')}>
                 {t('settings.english')}
               </Button>
-              <Button variant={language === 'es' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('es')}>
-                {t('settings.spanish')}
-              </Button>
             </div>
           </section>
 

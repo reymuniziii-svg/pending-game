@@ -11,7 +11,7 @@ export const POLICY_TRAPS: PolicyTrap[] = [
     explanation: 'Under INA Section 203(h), a child who turns 21 during the waiting period may no longer qualify as a "child" for immigration purposes. Some protections exist (CSPA), but many fall through the cracks.',
     realWorldExample: 'A family petition filed when a child is 15 may take 10+ years to become current. By then, the child is 25+ and no longer qualifies.',
     triggers: [
-      { type: 'stat', target: 'childAge', operator: '>=', value: 21 },
+      { type: 'flag', target: 'childAge', operator: '>=', value: 21 },
       { type: 'flag', target: 'has_pending_family_petition', operator: '==', value: true },
     ],
     consequences: [
@@ -33,12 +33,12 @@ export const POLICY_TRAPS: PolicyTrap[] = [
     explanation: 'INA Section 212(a)(9)(B)(i)(I). The bar is triggered by departure, not by the unlawful presence itself. Many people don\'t realize the trap until they leave.',
     realWorldExample: 'A student who overstays their visa by 200 days, then leaves for a consular interview, triggers a 3-year bar from reentering.',
     triggers: [
-      { type: 'stat', target: 'unlawfulPresenceDays', operator: '>=', value: 180 },
-      { type: 'stat', target: 'unlawfulPresenceDays', operator: '<', value: 365 },
+      { type: 'flag', target: 'unlawfulPresenceDays', operator: '>=', value: 180 },
+      { type: 'flag', target: 'unlawfulPresenceDays', operator: '<', value: 365 },
       { type: 'flag', target: 'departed_us', operator: '==', value: true },
     ],
     consequences: [
-      { type: 'status-change', target: 'barred-3-year', value: true },
+      { type: 'flag-set', target: 'barred_3_year', value: true },
       { type: 'stat-change', target: 'stress', value: 50 },
     ],
     avoidanceConditions: [
@@ -56,11 +56,11 @@ export const POLICY_TRAPS: PolicyTrap[] = [
     explanation: 'INA Section 212(a)(9)(B)(i)(II). This is the most common trap for undocumented immigrants who want to legalize through a U.S. citizen spouse.',
     realWorldExample: 'Elena entered without inspection 13 years ago. If she leaves to attend a consular interview, she triggers a 10-year bar.',
     triggers: [
-      { type: 'stat', target: 'unlawfulPresenceDays', operator: '>=', value: 365 },
+      { type: 'flag', target: 'unlawfulPresenceDays', operator: '>=', value: 365 },
       { type: 'flag', target: 'departed_us', operator: '==', value: true },
     ],
     consequences: [
-      { type: 'status-change', target: 'barred-10-year', value: true },
+      { type: 'flag-set', target: 'barred_10_year', value: true },
       { type: 'stat-change', target: 'stress', value: 60 },
     ],
     avoidanceConditions: [
@@ -83,7 +83,7 @@ export const POLICY_TRAPS: PolicyTrap[] = [
       { type: 'flag', target: 'entered_illegally_after_bar', operator: '==', value: true },
     ],
     consequences: [
-      { type: 'status-change', target: 'permanent-bar', value: true },
+      { type: 'flag-set', target: 'permanent_bar', value: true },
       { type: 'stat-change', target: 'stress', value: 80 },
     ],
     severity: 'terminal',
@@ -97,7 +97,7 @@ export const POLICY_TRAPS: PolicyTrap[] = [
     explanation: 'INA Section 208(a)(2)(B). Exceptions exist for changed or extraordinary circumstances, but they\'re difficult to prove.',
     realWorldExample: 'Fatima arrived in fear but didn\'t know about the asylum process. By the time she learned, it had been 14 months.',
     triggers: [
-      { type: 'stat', target: 'monthsSinceArrival', operator: '>', value: 12 },
+      { type: 'flag', target: 'monthsSinceArrival', operator: '>', value: 12 },
       { type: 'flag', target: 'asylum_filed', operator: 'not-exists', value: true },
       { type: 'flag', target: 'seeking_asylum', operator: '==', value: true },
     ],
@@ -138,7 +138,7 @@ export const POLICY_TRAPS: PolicyTrap[] = [
     realWorldExample: 'David is laid off. In 60 days, he must find a new H-1B sponsor, file for a change of status, or leave his life behind.',
     triggers: [
       { type: 'flag', target: 'h1b_terminated', operator: '==', value: true },
-      { type: 'stat', target: 'daysSinceTermination', operator: '>', value: 60 },
+      { type: 'flag', target: 'daysSinceTermination', operator: '>', value: 60 },
       { type: 'flag', target: 'found_new_sponsor', operator: 'not-exists', value: true },
     ],
     consequences: [
@@ -163,7 +163,7 @@ export const POLICY_TRAPS: PolicyTrap[] = [
     triggers: [
       { type: 'flag', target: 'moved_addresses', operator: '==', value: true },
       { type: 'flag', target: 'ar11_filed', operator: 'not-exists', value: true },
-      { type: 'stat', target: 'daysSinceMove', operator: '>', value: 10 },
+      { type: 'flag', target: 'daysSinceMove', operator: '>', value: 10 },
     ],
     consequences: [
       { type: 'flag-set', target: 'ar11_violation', value: true },

@@ -11,13 +11,10 @@ import {
   DialogFooter,
 } from '@/components/ui'
 import { AlertTriangle, ExternalLink } from 'lucide-react'
-import { useSettingsStore } from '@/stores'
 
 export function TitleScreen() {
   const { t } = useTranslation('ui')
   const { setScreen, acknowledgeContentWarning, hasSeenContentWarning } = useGameStore()
-  const language = useSettingsStore((state) => state.language)
-  const setLanguage = useSettingsStore((state) => state.setLanguage)
   const [showWarning, setShowWarning] = useState(false)
 
   const handleBegin = () => {
@@ -64,21 +61,6 @@ export function TitleScreen() {
             <Button variant="ghost" size="sm" disabled>
               {t('title.about')}
             </Button>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs">
-            <button
-              className={`px-2 py-1 rounded ${language === 'en' ? 'bg-accent text-white' : 'bg-muted'}`}
-              onClick={() => setLanguage('en')}
-            >
-              EN
-            </button>
-            <button
-              className={`px-2 py-1 rounded ${language === 'es' ? 'bg-accent text-white' : 'bg-muted'}`}
-              onClick={() => setLanguage('es')}
-            >
-              ES
-            </button>
           </div>
         </div>
       </div>

@@ -29,6 +29,8 @@ export const ELENA_CHAIN_EVENTS: GameEvent[] = [
         outcomes: [
           { type: 'finance-subtract', target: 'Immigration Consultation', value: 250 },
           { type: 'flag-set', target: 'waiver_consultation_started', value: true },
+          { type: 'flag-set', target: 'entered_without_inspection', value: true },
+          { type: 'flag-set', target: 'married_to_usc', value: true },
           { type: 'stat-change', target: 'stress', value: 20 },
         ],
         outcomeText: 'The lawyer pulls out a whiteboard. "You entered without inspection. That means adjustment of status isn\'t available. But there\'s a path: the I-601A waiver. We have to prove Michael would suffer extreme hardship without you."',
@@ -737,7 +739,7 @@ export const ELENA_CHAIN_EVENTS: GameEvent[] = [
 
   // === ADDITIONAL STANDALONE EVENTS ===
   {
-    id: 'elena_driving_fear',
+    id: 'elena_highway_stop',
     title: 'The Red and Blue Lights',
     description: 'Police lights behind you on the highway. Your heart stops. You pull over, hands shaking on the wheel.',
     sceneType: 'street',
@@ -884,6 +886,81 @@ export const ELENA_CHAIN_EVENTS: GameEvent[] = [
     isRepeatable: true,
     isMandatory: false,
     priority: 4,
+  },
+  {
+    id: 'elena_chain_status_quo_life',
+    title: 'Life in the Shadows',
+    description: 'You choose certainty over the gamble. No consulate, no waiver, no risk of a ten-year exile from your own children. Just the life you already have—undocumented, careful, and yours.',
+    sceneType: 'home',
+    timing: { type: 'triggered' },
+    conditions: [],
+    weight: 0,
+    characterIds: ['elena'],
+    chainId: 'elena_waiver_path',
+    chainPosition: 3,
+    choices: [
+      {
+        id: 'keep_building',
+        text: 'Keep building a quiet, careful life',
+        outcomes: [
+          { type: 'flag-set', target: 'chose_status_quo', value: true },
+          { type: 'stat-change', target: 'communityConnection', value: 10 },
+        ],
+        outcomeText: 'You drive carefully. You keep your head down. You raise Sofia and Diego to be brave in ways you can\'t always be. It isn\'t safety. But it\'s family, and family is everything.',
+        isRecommended: true,
+      },
+      {
+        id: 'keep_door_open',
+        text: 'Tell Michael you\'ll revisit it if the law changes',
+        outcomes: [
+          { type: 'flag-set', target: 'status_quo_provisional', value: true },
+          { type: 'stat-change', target: 'stress', value: 5 },
+        ],
+        outcomeText: '"If the law ever changes," you tell Michael, "we try again." He nods. You both know how often it has changed for the worse. But hope is a door you refuse to lock.',
+      },
+    ],
+    tags: ['immigration', 'family', 'life'],
+    isRepeatable: false,
+    isMandatory: false,
+    priority: 5,
+  },
+  {
+    id: 'elena_chain_after_denial',
+    title: 'After the Denial',
+    description: 'The denial letter sits on the table for days. $5,000 gone. Eighteen months of hope gone. Michael keeps saying you\'ll find another way. The children ask why you\'re sad. You don\'t have the words.',
+    sceneType: 'home',
+    timing: { type: 'triggered' },
+    conditions: [],
+    weight: 0,
+    characterIds: ['elena'],
+    chainId: 'elena_waiver_path',
+    chainPosition: 7,
+    choices: [
+      {
+        id: 'stay_and_fight',
+        text: 'Stay, regroup, and keep your family together',
+        outcomes: [
+          { type: 'flag-set', target: 'denial_stayed', value: true },
+          { type: 'stat-change', target: 'stress', value: -10 },
+          { type: 'relationship-change', target: 'michael', value: 5 },
+        ],
+        outcomeText: 'You won\'t leave your children. Not for a consulate, not for a maybe. You stay—undocumented, denied, but present for every birthday, every fever, every ordinary miracle.',
+        isRecommended: true,
+      },
+      {
+        id: 'consult_new_lawyer',
+        text: 'Look for a lawyer who\'ll try a different strategy',
+        outcomes: [
+          { type: 'flag-set', target: 'seeking_new_strategy', value: true },
+          { type: 'stat-change', target: 'stress', value: 15 },
+        ],
+        outcomeText: 'You start over with a new firm, a new consultation, a new retainer you can barely afford. Maybe this one will see something the last one missed. Maybe hope is just stubbornness with better paperwork.',
+      },
+    ],
+    tags: ['immigration', 'denial', 'family'],
+    isRepeatable: false,
+    isMandatory: false,
+    priority: 7,
   },
 ]
 

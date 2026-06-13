@@ -727,7 +727,7 @@ export const FATIMA_CHAIN_EVENTS: GameEvent[] = [
     priority: 4,
   },
   {
-    id: 'fatima_nightmare',
+    id: 'fatima_recurring_dream',
     title: 'The Dream',
     description: 'You wake at 3 AM, heart pounding. The same dream again. The interrogation room. The questions that never ended. The door that never opened.',
     sceneType: 'home',
@@ -798,6 +798,33 @@ export const FATIMA_CHAIN_EVENTS: GameEvent[] = [
     isRepeatable: false,
     isMandatory: false,
     priority: 5,
+  },
+  {
+    id: 'fatima_chain_voluntary_departure',
+    title: 'Departure with Dignity',
+    description: 'The papers are signed. You have ninety days to leave the country that would not keep you. Miriam helps you pack. Your church takes up a collection for the flight. You fold the life you built here into two suitcases.',
+    sceneType: 'airport',
+    timing: { type: 'triggered' },
+    conditions: [],
+    weight: 0,
+    characterIds: ['fatima'],
+    chainId: 'fatima_asylum_hearing',
+    chainPosition: 9,
+    choices: [
+      {
+        id: 'leave_with_dignity',
+        text: 'Board the plane on your own terms',
+        outcomes: [
+          { type: 'flag-set', target: 'ending_voluntary_departure', value: true },
+          { type: 'end-game', target: 'fatima_departure' },
+        ],
+        outcomeText: 'No handcuffs. No detention cell. You walk to the gate yourself, head up, the way a journalist walks toward a story whose ending she already knows. America asked you to leave. You leave as the woman you always were—unbroken, even now.',
+      },
+    ],
+    tags: ['ending', 'asylum', 'departure'],
+    isRepeatable: false,
+    isMandatory: false,
+    priority: 9,
   },
 ]
 

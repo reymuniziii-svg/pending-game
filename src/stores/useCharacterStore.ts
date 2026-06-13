@@ -9,6 +9,7 @@ import type {
   GameDate,
 } from '@/types'
 import { clamp } from '@/lib/utils'
+import { getValidTransitions } from '@/engine/statusTransition'
 
 interface CharacterState {
   // Profile reference
@@ -204,16 +205,3 @@ function getReentryRisk(status: ImmigrationStatusType) {
   return 'none' as const
 }
 
-function getValidTransitions(status: ImmigrationStatusType): ImmigrationStatusType[] {
-  // Simplified - full implementation would have complete transition map
-  const transitions: Partial<Record<ImmigrationStatusType, ImmigrationStatusType[]>> = {
-    'daca': ['daca', 'undocumented', 'removal-proceedings'],
-    'h1b-active': ['h1b-active', 'i485-pending', 'undocumented-overstay'],
-    'h1b-pending': ['h1b-active', 'student-f1-opt', 'undocumented-overstay'],
-    'asylum-pending': ['asylum-granted', 'removal-proceedings'],
-    'undocumented': ['removal-proceedings', 'vawa-pending', 'i485-pending'],
-    'green-card-conditional': ['green-card-permanent', 'removal-proceedings'],
-    'green-card-permanent': ['naturalized-citizen'],
-  }
-  return transitions[status] || []
-}

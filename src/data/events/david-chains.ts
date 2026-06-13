@@ -108,6 +108,7 @@ export const DAVID_CHAIN_EVENTS: GameEvent[] = [
         text: 'Open the email...',
         outcomes: [
           { type: 'flag-set', target: 'was_laid_off', value: true },
+          { type: 'flag-set', target: 'h1b_terminated', value: true },
           { type: 'stat-change', target: 'stress', value: 50 },
         ],
         outcomeText: '"We regret to inform you that your position has been eliminated." The words blur. 60 days of work authorization remain. 60 days to find a new sponsor or pack up 8 years of life in America.',

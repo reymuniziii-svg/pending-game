@@ -79,10 +79,17 @@ function serializeGameState(): SaveData {
     financeState: {
       bankBalance: finance.bankBalance,
       monthlyIncome: finance.monthlyIncome,
+      incomeSource: finance.incomeSource,
       recurringExpenses: finance.recurringExpenses,
       pendingFees: finance.pendingFees,
+      paidFees: finance.paidFees,
       debt: finance.totalDebt,
+      monthlyDebtPayment: finance.monthlyDebtPayment,
       transactionHistory: finance.transactionHistory.slice(-100), // Keep last 100
+      totalImmigrationSpending: finance.totalImmigrationSpending,
+      totalRemittancesSent: finance.totalRemittancesSent,
+      peakBalance: finance.peakBalance,
+      lowestBalance: finance.lowestBalance,
     },
 
     eventState: {
@@ -170,10 +177,18 @@ function applySaveToStores(save: SaveData): void {
   useFinanceStore.setState({
     bankBalance: save.financeState.bankBalance,
     monthlyIncome: save.financeState.monthlyIncome,
+    incomeSource: save.financeState.incomeSource ?? '',
     recurringExpenses: save.financeState.recurringExpenses,
     pendingFees: save.financeState.pendingFees,
+    paidFees: save.financeState.paidFees ?? [],
     totalDebt: save.financeState.debt,
+    monthlyDebtPayment: save.financeState.monthlyDebtPayment
+      ?? (save.financeState.debt > 0 ? Math.min(save.financeState.debt * 0.02, 200) : 0),
     transactionHistory: save.financeState.transactionHistory,
+    totalImmigrationSpending: save.financeState.totalImmigrationSpending ?? 0,
+    totalRemittancesSent: save.financeState.totalRemittancesSent ?? 0,
+    peakBalance: save.financeState.peakBalance ?? save.financeState.bankBalance,
+    lowestBalance: save.financeState.lowestBalance ?? save.financeState.bankBalance,
   })
 
   // Apply events

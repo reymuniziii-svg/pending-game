@@ -8,7 +8,9 @@ import {
   useRelationshipStore,
   useGameStore,
   useSimulationStore,
+  useAchievementStore,
 } from '@/stores'
+import { evaluateAchievements, type AchievementCheckState } from '@/data/achievements'
 import type {
   GameEvent,
   EventCondition,
@@ -28,6 +30,7 @@ import {
   isWithinTimingWindow,
   processMonthlyFormLifecycle,
   processPolicyTraps,
+  accrueMonthlyStatusEffects,
   evaluateLegalRuleChecks,
   isStatusTransitionAllowed,
   buildNextStatus,
@@ -86,11 +89,44 @@ export function useEventEngine() {
     return map
   }, [relationships])
 
+  const checkAchievements = useCallback((): void => {
+    // Read fresh state (not the render closure) so unlocks reflect outcomes just applied,
+    // including a status change in the same choice that ends the game.
+    const character = useCharacterStore.getState()
+    const finance = useFinanceStore.getState()
+    const relationshipMap: Record<string, number> = {}
+    for (const relationship of useRelationshipStore.getState().relationships) {
+      relationshipMap[relationship.id] = relationship.level
+    }
+    const checkState: AchievementCheckState = {
+      totalDaysElapsed: useTimeStore.getState().totalDaysElapsed,
+      currentStatus: character.status?.type ?? 'undocumented',
+      eventsCompleted: Array.from(useEventStore.getState().completedEventIds),
+      choicesMade: {},
+      stats: {
+        health: character.stats.health,
+        stress: character.stats.stress,
+        wellbeing: character.stats.communityConnection,
+        stability: character.stats.englishProficiency,
+      },
+      finances: {
+        bankBalance: finance.bankBalance,
+        totalSpent: finance.totalImmigrationSpending,
+        totalEarned: 0,
+      },
+      relationships: relationshipMap,
+      flags: character.flags as Record<string, boolean>,
+      characterId: useGameStore.getState().selectedCharacterId ?? '',
+    }
+    useAchievementStore.getState().checkAndUnlock(evaluateAchievements(checkState))
+  }, [])
+
   const buildConditionContext = useCallback((date: GameDate) => ({
     statusType: status?.type,
     flags: {
-      ...flags,
+      // status value is the default; an event-set flag of the same name takes precedence
       unlawfulPresenceDays: status?.unlawfulPresenceDays,
+      ...flags,
     },
     bankBalance,
     relationships: relationshipIndex,
@@ -427,8 +463,11 @@ export function useEventEngine() {
       }
     }
 
+    // A choice may have changed status/stats — re-check achievements.
+    checkAchievements()
+
     return true
-  }, [canSelectChoice, completeEvent, getCurrentDate, processOutcomes, queueEvent, showOutcome])
+  }, [canSelectChoice, checkAchievements, completeEvent, getCurrentDate, processOutcomes, queueEvent, showOutcome])
 
   const triggerRandomEvent = useCallback((): boolean => {
     // Deterministic event chance each month.
@@ -447,6 +486,14 @@ export function useEventEngine() {
 
   const processMonthlySystems = useCallback((currentDate: GameDate): void => {
     processMonthlyFormLifecycle(currentDate, () => nextRandom('forms'))
+
+    // Advance the time-based inputs legal traps depend on (unlawful presence, H-1B grace clock).
+    accrueMonthlyStatusEffects({
+      statusType: status?.type,
+      getFlag,
+      setFlag,
+      addUnlawfulPresenceDays: useCharacterStore.getState().addUnlawfulPresenceDays,
+    })
 
     const conditionContext = buildConditionContext(currentDate)
     const legalChecks = evaluateLegalRuleChecks({
@@ -474,6 +521,9 @@ export function useEventEngine() {
       }
     )
 
+    // Unlock any achievements whose conditions are now met.
+    checkAchievements()
+
     // Deadline auto-flags for downstream events and urgency UI.
     for (const deadline of activeDeadlines) {
       const daysLeft = getDaysUntilDeadline(deadline)
@@ -487,6 +537,7 @@ export function useEventEngine() {
   }, [
     activeDeadlines,
     buildConditionContext,
+    checkAchievements,
     getDaysUntilDeadline,
     getFlag,
     nextRandom,

@@ -899,10 +899,17 @@ export interface SaveData {
   financeState: {
     bankBalance: number
     monthlyIncome: number
+    incomeSource: string
     recurringExpenses: RecurringExpense[]
     pendingFees: PendingFee[]
+    paidFees: PendingFee[]
     debt: number
+    monthlyDebtPayment: number
     transactionHistory: Transaction[]
+    totalImmigrationSpending: number
+    totalRemittancesSent: number
+    peakBalance: number
+    lowestBalance: number
   }
 
   // Events

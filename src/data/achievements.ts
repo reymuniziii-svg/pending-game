@@ -394,6 +394,30 @@ export function getVisibleAchievements(): Achievement[] {
   return ACHIEVEMENTS.filter(a => !a.secret)
 }
 
+// Machine-evaluable unlock conditions. Covers the achievements that can be derived from
+// the live game state (time survived, current status, hardship milestones). Achievements
+// that need bespoke per-event hooks are intentionally left to be added with their flags.
+const YEAR = 365
+
+export const ACHIEVEMENT_CONDITIONS: AchievementCondition[] = [
+  { achievementId: 'first-steps', check: (s) => Boolean(s.characterId) },
+  { achievementId: 'year-one', check: (s) => s.totalDaysElapsed >= YEAR },
+  { achievementId: 'half-decade', check: (s) => s.totalDaysElapsed >= YEAR * 5 },
+  { achievementId: 'the-long-wait', check: (s) => s.totalDaysElapsed >= YEAR * 10 },
+  { achievementId: 'stress-tested', check: (s) => s.stats.stress >= 90 },
+  { achievementId: 'ribbon-dreamer', check: (s) => s.currentStatus === 'daca' && s.totalDaysElapsed >= YEAR },
+  {
+    achievementId: 'ribbon-permanent-resident',
+    check: (s) => s.currentStatus === 'green-card-permanent' || s.currentStatus === 'green-card-conditional',
+  },
+  { achievementId: 'ribbon-citizen', check: (s) => s.currentStatus === 'naturalized-citizen' },
+]
+
+// Return the ids of every achievement whose condition is currently satisfied.
+export function evaluateAchievements(state: AchievementCheckState): string[] {
+  return ACHIEVEMENT_CONDITIONS.filter((condition) => condition.check(state)).map((c) => c.achievementId)
+}
+
 // Category display info
 export const CATEGORY_INFO: Record<AchievementCategory, {
   label: string

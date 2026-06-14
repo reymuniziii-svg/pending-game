@@ -43,3 +43,23 @@ describe('event data integrity (no dead ends)', () => {
     expect(choiceless).toEqual([])
   })
 })
+
+// M3 fix verification: both David chain-start events are reachable from month 12.
+describe('David H-1B layoff chain reachability', () => {
+  it('layoff and backlog chains both start from month 12 (same window)', () => {
+    const layoff = EVENTS.find((e) => e.id === 'david_chain_layoff_start')
+    const backlog = EVENTS.find((e) => e.id === 'david_chain_backlog_start')
+    expect(layoff).toBeDefined()
+    expect(backlog).toBeDefined()
+    const layoffTiming = layoff!.timing as { earliestMonth?: number }
+    const backlogTiming = backlog!.timing as { earliestMonth?: number }
+    expect(layoffTiming.earliestMonth).toBe(12)
+    expect(backlogTiming.earliestMonth).toBe(12)
+  })
+
+  it('layoff chain has higher or equal weight than backlog chain after rebalance', () => {
+    const layoff = EVENTS.find((e) => e.id === 'david_chain_layoff_start')!
+    const backlog = EVENTS.find((e) => e.id === 'david_chain_backlog_start')!
+    expect(layoff.weight).toBeGreaterThan(backlog.weight)
+  })
+})

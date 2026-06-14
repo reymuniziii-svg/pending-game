@@ -734,8 +734,9 @@ export const FATIMA_CHAIN_EVENTS: GameEvent[] = [
     timing: { type: 'random', earliestMonth: 3, latestMonth: 60 },
     conditions: [
       { type: 'character', target: 'id', operator: '==', value: 'fatima' },
+      { type: 'flag', target: 'dream_count', operator: '<', value: 4 },
     ],
-    weight: 55,
+    weight: 20,
     characterIds: ['fatima'],
     choices: [
       {
@@ -744,6 +745,7 @@ export const FATIMA_CHAIN_EVENTS: GameEvent[] = [
         outcomes: [
           { type: 'stat-change', target: 'stress', value: -10 },
           { type: 'flag-set', target: 'seeking_therapy', value: true },
+          { type: 'flag-increment', target: 'dream_count', value: 1 },
         ],
         outcomeText: 'You find a refugee mental health clinic. The therapist speaks Tigrinya. For the first time, you talk about what happened to someone who can help you carry it.',
         isRecommended: true,
@@ -754,6 +756,7 @@ export const FATIMA_CHAIN_EVENTS: GameEvent[] = [
         outcomes: [
           { type: 'stat-change', target: 'stress', value: 15 },
           { type: 'stat-change', target: 'health', value: -5 },
+          { type: 'flag-increment', target: 'dream_count', value: 1 },
         ],
         outcomeText: 'You make tea. Stare at the ceiling until dawn. In the morning, you function. That\'s enough. It has to be enough.',
       },

@@ -1,5 +1,5 @@
 export { seededFloat, pickIndex, weightedPick } from './rng'
-export { accrueMonthlyStatusEffects } from './statusEffects'
+export { accrueMonthlyStatusEffects, shouldTriggerStressCrisis } from './statusEffects'
 export {
   evaluateCondition,
   evaluateConditions,

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppRouter } from './app/AppRouter'
 import { ErrorBoundary } from './app/ErrorBoundary'
+import { GlossaryPopup } from './components/ui'
 import { loadContentBundle } from './content'
 import { useSettingsStore, useSimulationStore } from './stores'
 
@@ -32,6 +33,7 @@ function App() {
     <ErrorBoundary>
       <div className={`min-h-screen bg-background ${fontScaleClass}`}>
         <AppRouter />
+        <GlossaryPopup />
         <div className="fixed bottom-2 right-3 text-[10px] text-muted-foreground/70 pointer-events-none">
           {t('app.nonLegalDisclaimer')}
         </div>

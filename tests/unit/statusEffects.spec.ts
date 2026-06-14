@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accrueMonthlyStatusEffects } from '@/engine/statusEffects'
+import { accrueMonthlyStatusEffects, shouldTriggerStressCrisis } from '@/engine/statusEffects'
 import { processPolicyTraps } from '@/engine/trapProcessor'
 import { EVENTS } from '@/data/events'
 import type { EventOutcome, ImmigrationStatusType } from '@/types'
@@ -101,6 +101,23 @@ describe('monthly status effects drive traps end-to-end', () => {
       addUnlawfulPresenceDays: () => {},
     })
     expect(store.flags.daysSinceTermination).toBeUndefined()
+  })
+})
+
+describe('shouldTriggerStressCrisis', () => {
+  it('returns true when stress is 100 and the crisis has not fired', () => {
+    const flags: Record<string, string | number | boolean | undefined> = {}
+    expect(shouldTriggerStressCrisis({ stress: 100 }, (k) => flags[k])).toBe(true)
+  })
+
+  it('returns false after the crisis flag is set', () => {
+    const flags: Record<string, string | number | boolean | undefined> = { stress_crisis_fired: true }
+    expect(shouldTriggerStressCrisis({ stress: 100 }, (k) => flags[k])).toBe(false)
+  })
+
+  it('returns false when stress is below 100', () => {
+    const flags: Record<string, string | number | boolean | undefined> = {}
+    expect(shouldTriggerStressCrisis({ stress: 99 }, (k) => flags[k])).toBe(false)
   })
 })
 

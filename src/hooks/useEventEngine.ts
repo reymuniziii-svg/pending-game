@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import {
   useEventStore,
   useCharacterStore,
@@ -10,6 +10,7 @@ import {
   useSimulationStore,
   useAchievementStore,
 } from '@/stores'
+import { useSaveStore } from '@/stores/useSaveStore'
 import { evaluateAchievements, type AchievementCheckState } from '@/data/achievements'
 import type {
   GameEvent,
@@ -31,6 +32,7 @@ import {
   processMonthlyFormLifecycle,
   processPolicyTraps,
   accrueMonthlyStatusEffects,
+  shouldTriggerStressCrisis,
   evaluateLegalRuleChecks,
   isStatusTransitionAllowed,
   buildNextStatus,
@@ -120,6 +122,13 @@ export function useEventEngine() {
     }
     useAchievementStore.getState().checkAndUnlock(evaluateAchievements(checkState))
   }, [])
+
+  // Fire first-steps and other on-start achievements when a character is selected.
+  useEffect(() => {
+    if (selectedCharacterId) {
+      checkAchievements()
+    }
+  }, [selectedCharacterId, checkAchievements])
 
   const buildConditionContext = useCallback((date: GameDate) => ({
     statusType: status?.type,
@@ -521,6 +530,12 @@ export function useEventEngine() {
       }
     )
 
+    // Stress crisis: queue a forced burnout event the first time stress maxes out.
+    if (shouldTriggerStressCrisis(stats, getFlag)) {
+      queueEvent('system_stress_crisis', 100)
+      setFlag('stress_crisis_fired', true)
+    }
+
     // Unlock any achievements whose conditions are now met.
     checkAchievements()
 
@@ -534,6 +549,9 @@ export function useEventEngine() {
         setFlag(`deadline:${deadline.id}:past_due`, true)
       }
     }
+
+    // Autosave at the end of each month's processing.
+    useSaveStore.getState().autoSave()
   }, [
     activeDeadlines,
     buildConditionContext,
@@ -542,7 +560,9 @@ export function useEventEngine() {
     getFlag,
     nextRandom,
     processOutcome,
+    queueEvent,
     setFlag,
+    stats,
     status?.type,
   ])
 

@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useGameStore, useTimeStore, useCharacterStore, useFinanceStore, useEventStore, useFormStore } from '@/stores'
+import { useSaveStore } from '@/stores/useSaveStore'
 import {
   Button,
   Card,
@@ -87,6 +88,7 @@ export function GameScreen() {
   const [showMonthSummary, setShowMonthSummary] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [arrivalDismissedFor, setArrivalDismissedFor] = useState<string | null>(null)
+  const [savedMessage, setSavedMessage] = useState(false)
 
   // V2: Time flow system
   const { pause, resume, skipDay, manualAdvance } = useTimeFlow({
@@ -207,18 +209,28 @@ export function GameScreen() {
         'border-b border-border bg-card/95 backdrop-blur-sm px-4 py-3 sticky top-0 z-40',
         isTimeFlowing && 'time-flowing'
       )}>
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="font-serif font-bold text-lg">{t('app.title')}</h1>
-            <div className="h-4 w-px bg-border" />
-            <Badge variant="secondary" className="text-xs flex items-center gap-1">
-              <CalendarDays className="h-3 w-3" />
-              {t('game.year', { year: Math.floor(totalDaysElapsed / 365) + 1 })}
-            </Badge>
+        <div className="max-w-7xl mx-auto flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center justify-between md:justify-start gap-4">
+            <div className="flex items-center gap-4">
+              <h1 className="font-serif font-bold text-lg">{t('app.title')}</h1>
+              <div className="h-4 w-px bg-border" />
+              <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" />
+                {t('game.year', { year: Math.floor(totalDaysElapsed / 365) + 1 })}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2 md:hidden">
+              <Button variant="ghost" size="sm" aria-label="Game settings" onClick={() => setShowSettings(true)}>
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" aria-label="Pause game" onClick={() => setPaused(true)}>
+                <Pause className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* V2: Time Control Bar */}
-          <div className="flex-1 max-w-lg mx-4">
+          <div className="w-full md:flex-1 md:max-w-lg md:mx-4">
             <TimeControlBar
               disabled={!!currentEvent}
               onPause={() => pause()}
@@ -228,11 +240,11 @@ export function GameScreen() {
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)}>
+          <div className="hidden md:flex items-center gap-2">
+            <Button variant="ghost" size="sm" aria-label="Game settings" onClick={() => setShowSettings(true)}>
               <Settings className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setPaused(true)}>
+            <Button variant="ghost" size="sm" aria-label="Pause game" onClick={() => setPaused(true)}>
               <Pause className="h-4 w-4" />
             </Button>
           </div>
@@ -547,8 +559,12 @@ export function GameScreen() {
                 <Play className="mr-2 h-4 w-4" />
                 {t('game.resume')}
               </Button>
-              <Button variant="outline" className="w-full" disabled>
-                {t('game.saveGame')}
+              <Button variant="outline" className="w-full" onClick={() => {
+                useSaveStore.getState().saveGame(0)
+                setSavedMessage(true)
+                setTimeout(() => setSavedMessage(false), 2000)
+              }}>
+                {savedMessage ? 'Game saved ✓' : t('game.saveGame')}
               </Button>
               <Button
                 variant="outline"

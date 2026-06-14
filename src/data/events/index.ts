@@ -5,6 +5,7 @@ import { MARIA_CHAIN_EVENTS, MARIA_CHAINS } from './maria-chains'
 import { DAVID_CHAIN_EVENTS, DAVID_CHAINS } from './david-chains'
 import { FATIMA_CHAIN_EVENTS, FATIMA_CHAINS } from './fatima-chains'
 import { ELENA_CHAIN_EVENTS, ELENA_CHAINS } from './elena-chains'
+import { SYSTEM_EVENTS } from './system-events'
 
 // ============ MARIA (DACA) EVENTS ============
 
@@ -4366,6 +4367,7 @@ export const EVENTS: GameEvent[] = [
   ...ELENA_EVENTS,
   ...ELENA_CHAIN_EVENTS,
   ...SHARED_EVENTS,
+  ...SYSTEM_EVENTS,
 ]
 
 // Export by category for filtering

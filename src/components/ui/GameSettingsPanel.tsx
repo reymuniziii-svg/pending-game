@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Globe, Accessibility, Type, SlidersHorizontal } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './Dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './Dialog'
 import { Button } from './Button'
 import { useSettingsStore } from '@/stores'
 
@@ -34,6 +34,7 @@ export function GameSettingsPanel({ open, onOpenChange }: GameSettingsPanelProps
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>{t('settings.title')}</DialogTitle>
+          <DialogDescription>Adjust language, motion, and accessibility settings.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">

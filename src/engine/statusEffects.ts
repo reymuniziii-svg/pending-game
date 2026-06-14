@@ -1,4 +1,4 @@
-import type { ImmigrationStatusType } from '@/types'
+import type { CharacterStats, ImmigrationStatusType } from '@/types'
 
 export interface MonthlyStatusEffectsContext {
   statusType: ImmigrationStatusType | undefined
@@ -28,4 +28,16 @@ export function accrueMonthlyStatusEffects(context: MonthlyStatusEffectsContext)
     const elapsed = Number(context.getFlag('daysSinceTermination') ?? 0)
     context.setFlag('daysSinceTermination', elapsed + DAYS_PER_MONTH)
   }
+}
+
+/**
+ * Returns true when stress has maxed out and the crisis event hasn't fired yet this run.
+ * Intended to be called once per month in processMonthlySystems; the caller must set
+ * 'stress_crisis_fired' to prevent re-triggering after the first fire.
+ */
+export function shouldTriggerStressCrisis(
+  stats: Pick<CharacterStats, 'stress'>,
+  getFlag: (key: string) => string | number | boolean | undefined,
+): boolean {
+  return stats.stress >= 100 && !getFlag('stress_crisis_fired')
 }

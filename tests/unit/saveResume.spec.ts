@@ -6,6 +6,16 @@ import { useTimeStore } from '@/stores/useTimeStore'
 import { useGameStore } from '@/stores/useGameStore'
 import { useSaveStore } from '@/stores/useSaveStore'
 
+// localStorage is not available in the node test environment — provide a minimal mock.
+const localStorageStore: Record<string, string> = {}
+const localStorageMock = {
+  getItem: (key: string) => localStorageStore[key] ?? null,
+  setItem: (key: string, value: string) => { localStorageStore[key] = value },
+  removeItem: (key: string) => { delete localStorageStore[key] },
+  clear: () => { Object.keys(localStorageStore).forEach(k => delete localStorageStore[k]) },
+}
+Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true })
+
 // SPEC behavior 6 (GAP): saving then reloading restores the full run — including debt and
 // its ongoing repayment — with no silent state loss. Today applySaveToStores never restores
 // monthlyDebtPayment (or incomeSource), so a loaded game stops paying down debt.
@@ -41,6 +51,7 @@ function setupGameWithDebt() {
 
 describe('save and resume', () => {
   beforeEach(() => {
+    localStorageMock.clear()
     useGameStore.getState().resetGame()
     useCharacterStore.getState().reset()
     useFinanceStore.getState().reset()
@@ -76,5 +87,29 @@ describe('save and resume', () => {
     const debtBefore = useFinanceStore.getState().totalDebt
     useFinanceStore.getState().processMonthEnd({ day: 1, month: 7, year: 2027 })
     expect(useFinanceStore.getState().totalDebt).toBeLessThan(debtBefore)
+  })
+
+  it('autoSave writes to slot 0 and hasSaveInSlot(0) returns true', () => {
+    setupGameWithDebt()
+    useSaveStore.getState().autoSave()
+    expect(useSaveStore.getState().hasSaveInSlot(0)).toBe(true)
+  })
+
+  it('loadGame(0) after autoSave restores stats and sets screen to game', () => {
+    setupGameWithDebt()
+    useSaveStore.getState().autoSave()
+
+    // Reset stores as if the player reloaded the page.
+    useGameStore.getState().resetGame()
+    useCharacterStore.getState().reset()
+    useFinanceStore.getState().reset()
+    useTimeStore.getState().reset()
+
+    const ok = useSaveStore.getState().loadGame(0)
+    expect(ok).toBe(true)
+    expect(useGameStore.getState().currentScreen).toBe('game')
+    expect(useGameStore.getState().selectedCharacterId).toBe('maria')
+    expect(useTimeStore.getState().totalDaysElapsed).toBe(530)
+    expect(useFinanceStore.getState().bankBalance).toBe(3000)
   })
 })

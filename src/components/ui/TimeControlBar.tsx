@@ -85,7 +85,7 @@ export function TimeControlBar({
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2 bg-card border border-border rounded-lg">
+    <div className="flex flex-wrap items-center gap-2 min-w-0 px-3 py-2 bg-card border border-border rounded-lg">
       {/* V3: Manual Mode - Advance Month Button */}
       {isManualMode ? (
         <motion.button
@@ -163,8 +163,8 @@ export function TimeControlBar({
       )}
 
       {/* Date Display */}
-      <div className="flex-1 text-center border-l border-border pl-3">
-        <span className="font-medium text-sm">{getFormattedDate()}</span>
+      <div className="flex-1 text-center border-l border-border pl-3 min-w-0">
+        <span className="font-medium text-sm truncate block">{getFormattedDate()}</span>
       </div>
 
       {/* Event Hint / Foreshadowing (V3) */}
@@ -200,6 +200,7 @@ export function TimeControlBar({
         <button
           onClick={() => setShowModeMenu(!showModeMenu)}
           className="p-2 rounded-md hover:bg-muted transition-colors"
+          aria-label={`Time mode: ${isManualMode ? 'Manual' : 'Auto'}`}
           title={`Mode: ${isManualMode ? 'Manual' : 'Auto'}`}
         >
           <Settings2 className="h-4 w-4 text-muted-foreground" />

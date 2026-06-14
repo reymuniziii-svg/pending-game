@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useGameStore } from '@/stores'
-import { Button } from '@/components/ui'
+import { useSaveStore } from '@/stores/useSaveStore'
+import { Button, GameSettingsPanel } from '@/components/ui'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -10,12 +11,15 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui'
-import { AlertTriangle, ExternalLink } from 'lucide-react'
+import { AlertTriangle, ExternalLink, Settings } from 'lucide-react'
 
 export function TitleScreen() {
   const { t } = useTranslation('ui')
   const { setScreen, acknowledgeContentWarning, hasSeenContentWarning } = useGameStore()
   const [showWarning, setShowWarning] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [hasSave] = useState(() => useSaveStore.getState().hasSaveInSlot(0))
 
   const handleBegin = () => {
     if (hasSeenContentWarning) {
@@ -55,11 +59,17 @@ export function TitleScreen() {
           </Button>
 
           <div className="flex gap-4 mt-4">
-            <Button variant="ghost" size="sm" disabled>
-              {t('title.loadGame')}
-            </Button>
-            <Button variant="ghost" size="sm" disabled>
+            {hasSave && (
+              <Button variant="ghost" size="sm" onClick={() => useSaveStore.getState().loadGame(0)}>
+                Continue
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => setShowAbout(true)}>
               {t('title.about')}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)}>
+              <Settings className="h-4 w-4 mr-1" />
+              Settings
             </Button>
           </div>
         </div>
@@ -69,6 +79,37 @@ export function TitleScreen() {
       <div className="absolute bottom-8 text-center text-sm text-muted-foreground">
         <p>All facts depicted are documented realities.</p>
       </div>
+
+      {/* About Dialog */}
+      <Dialog open={showAbout} onOpenChange={setShowAbout}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>About Pending</DialogTitle>
+            <DialogDescription>
+              An educational immigration life-simulation game.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-sm text-foreground/80">
+            <p>
+              <em>Pending</em> follows four characters — Maria, David, Elena, and Fatima — navigating
+              the U.S. immigration system month by month. Every event, form, trap, and deadline is
+              based on real policy and documented experience.
+            </p>
+            <p>
+              The game is intended to be educational, not to trivialize the experiences it depicts.
+            </p>
+            <p className="text-muted-foreground text-xs pt-2 border-t border-border">
+              Built with care. All facts are documented realities. Nothing is exaggerated.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowAbout(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Panel */}
+      <GameSettingsPanel open={showSettings} onOpenChange={setShowSettings} />
 
       {/* Content Warning Dialog */}
       <Dialog open={showWarning} onOpenChange={setShowWarning}>

@@ -1,165 +1,76 @@
-# Pending | Production Foundation
+# Pending — A Life in the System
 
-Pending is an interactive immigration life-simulation game built with React + TypeScript.
-This repository now includes:
+**Pending** is a browser-based life-simulation game that puts you inside the U.S. immigration system. You guide one of four characters through the system month by month — making decisions in branching story chains while juggling finances, relationships, stress, legal status, and the slow grind of forms and applications.
 
-- Deterministic simulation engine foundations.
-- Content bundle pipeline with draft/publish flow.
-- Lightweight Fastify API for content/legal/telemetry/admin routes.
-- Bilingual UI shell support (`en`, `es`).
-- Initial test and automation scaffolding.
+It's a game with a point: every mechanic maps to something real. Priority dates, the EB-2 backlog, RFEs, the public-charge rule, asylum work-permit waiting periods — the system you're fighting is modeled on the actual one, and an in-game glossary explains each concept as you hit it.
 
-## File structure
+**▶ Play it live: [pending-game.vercel.app](https://pending-game.vercel.app)**
 
-```text
-/Users/rey/Desktop/01-Active-Projects/pending-game
-  /src
-    /app
-    /engine
-    /content
-    /i18n
-    /assets
-    /components
-    /stores
-    /hooks
-    /data
-  /server
-    /src
-      /routes
-      /services
-      /auth
-      /middleware
-  /content
-    /draft
-    /published
-  /scripts
-  /tests
-    /unit
-    /integration
-    /e2e
-```
+![Pending — waiting room](public/images/scenes/waiting-room.png)
 
-## Required npm installs
+---
 
-Already defined in `package.json`, including:
+## The four lives you can play
 
-- Frontend/runtime: `i18next`, `react-i18next`, `zod`, `seedrandom`, `idb-keyval`.
-- Backend/API: `fastify`, `@fastify/*`, `jose`, `@google-cloud/*`.
-- Testing: `vitest`, `@playwright/test`, `@axe-core/playwright`, `@testing-library/*`.
+| | Character | Status | The wait |
+|---|---|---|---|
+| <img src="public/images/characters/maria-portrait.png" width="90" /> | **Maria Santos**, 28 · Mexico | DACA recipient, third-grade teacher | "I just want to stop being temporary." A $495 renewal every two years, forever. |
+| <img src="public/images/characters/david-portrait.png" width="90" /> | **David Sharma**, 29 · India | H-1B software engineer | Did everything right — and the India EB-2 green-card backlog is ~40 years long. |
+| <img src="public/images/characters/fatima-portrait.png" width="90" /> | **Fatima Haile**, 29 · Eritrea | Asylum seeker, journalist | Fled threats over her reporting. Hearing scheduled in 4–5 years. Can't work until then. |
+| <img src="public/images/characters/elena-portrait.png" width="90" /> | **Elena Morales**, 32 · Mexico | Undocumented | Married to a citizen, mother of two citizens — and still has no path. |
 
-Install all:
+## What's under the hood
+
+- **Deterministic simulation engine** (`src/engine/*`) — a seedrandom-based RNG, a condition evaluator, an outcome executor, and event/chain resolvers, so a given seed always plays out identically (which makes the gameplay testable).
+- **~8.8k lines of hand-authored branching content** (`src/data/events/*`) — per-character event chains with conditions, consequences, and "legal traps" that fire when a player makes a plausible-but-costly mistake.
+- **Systems modeled, not faked** — 16 real USCIS forms with processing/RFE lifecycles, a finance model, NPC relationships, a stress system, and status-transition rules.
+- **Teaches as you play** — a 25-term glossary of real immigration concepts and 32 achievements tied to in-game milestones.
+- **Bilingual content** (English / Spanish) served from versioned content bundles, with an offline-capable client fallback.
+- **Fully client-side** — no backend required to play; content bundles ship with the app and are cached in IndexedDB.
+
+## Stack
+
+React 19 · TypeScript · Vite 7 · Tailwind CSS 3 · Radix UI · Zustand · Motion · Lottie · i18next · Zod
+Tested with Vitest (unit) and Playwright + axe-core (e2e / accessibility).
+
+## Run it locally
 
 ```bash
 npm install
+npm run dev          # start the Vite dev server
 ```
 
-## Environment variables
+Then open the printed local URL.
 
-Web example: `.env.example`
-
-```env
-VITE_API_BASE_URL=https://api.pendinggame.com
-VITE_DEFAULT_LOCALE=en
-VITE_FALLBACK_BUNDLE_VERSION=latest
-VITE_TELEMETRY_ENABLED=true
-VITE_BUILD_SHA=dev
-```
-
-API example: `.env.server.example`
-
-```env
-NODE_ENV=production
-PORT=8080
-CORS_ORIGIN=https://pendinggame.com
-GCP_PROJECT_ID=your-project-id
-GCS_CONTENT_BUCKET=pending-content
-GCS_ASSET_BUCKET=pending-assets
-FIRESTORE_DATABASE=(default)
-ADMIN_ALLOWED_EMAILS=editor1@example.com,editor2@example.com
-RATE_LIMIT_PUBLIC_RPM=120
-RATE_LIMIT_ADMIN_RPM=10
-TELEMETRY_SALT=replace_me
-SHEETS_DOC_ID=replace_me
-```
-
-## How to run
-
-Start web app:
+Other useful scripts:
 
 ```bash
-npm run dev:web
+npm run build        # type-check + production build
+npm run preview      # serve the production build
+npm run lint         # eslint
+npm run test         # vitest unit tests
+npm run test:e2e     # playwright e2e + a11y
 ```
 
-Start API server:
+### Configuration (optional)
 
-```bash
-npm run dev:api
+The app runs with zero configuration. To point it at a remote content API instead of the bundled content, copy `.env.example` to `.env` and set `VITE_API_BASE_URL`; if unset (the default), the app loads content bundles shipped in `public/content/`.
+
+## Project layout
+
+```text
+src/
+  engine/      deterministic simulation (RNG, conditions, outcomes, resolvers)
+  data/        characters, events, forms, glossary, achievements, traps
+  content/     content-bundle loader + Zod schema
+  stores/      Zustand state (game, character, time, finance, events, forms…)
+  components/  React UI on Radix primitives
+  i18n/        localization
+public/
+  content/     published content bundles (en / es)
+  images/      character portraits and scene art
 ```
 
-Build everything:
+## A note on intent
 
-```bash
-npm run build
-```
-
-Run tests:
-
-```bash
-npm run test
-npm run test:e2e
-```
-
-Content pipeline:
-
-```bash
-npm run content:ingest
-npm run content:validate
-npm run content:publish
-```
-
-## API surface
-
-- `GET /v1/content/bundle?locale=en|es&version=latest`
-- `GET /v1/content/legal-snapshot?version=latest`
-- `POST /v1/telemetry/session-summary`
-- `POST /v1/admin/content/import`
-- `POST /v1/admin/content/publish`
-- `GET /v1/health`
-
-## Permissions, scopes, and auth flows
-
-### Read/write permissions
-
-- Public clients: read published content, write anonymous telemetry summary.
-- Admin/editor: import draft content, publish immutable bundles.
-- Scripts/ingest: write only to `content/draft`.
-
-### Authentication
-
-- Player flow: anonymous, no account required.
-- Admin flow: bearer JWT (Google verification) with allowlisted emails.
-- Local dev fallback: `x-admin-email` header when allowlisted.
-
-### API scopes
-
-- Google Sheets sync is scaffolded for read-only scope:
-  `https://www.googleapis.com/auth/spreadsheets.readonly`.
-
-### Rate limits
-
-- Public content endpoints: default `120 req/min/IP`.
-- Telemetry endpoint: `20 req/min/IP`.
-- Admin endpoints: `10 req/min/user`.
-
-## Security considerations
-
-- Educational-only legal disclaimer shown in app UI.
-- Admin endpoints protected by auth + audit logging.
-- Published bundles are immutable by version.
-- Content import/publish payloads validated with schemas.
-- Telemetry is privacy-first and session IDs are salted+hashed.
-- Generated art manifest stores provider/seed/prompt/rights metadata.
-
-## Notes
-
-This is a production foundation implementation. Some deeper gameplay balancing, narrative localization breadth, and full QA hardening remain as next-stage execution work.
+This is an educational project. It dramatizes the immigration system to make its mechanics legible — it is **not** legal advice, and the characters are fictional composites. The goal is to help people feel why "just get in line" isn't a real answer when, for some, the line is forty years long.
